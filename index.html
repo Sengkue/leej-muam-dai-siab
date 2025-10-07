@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Duab Toj Siab</title>
+    <link rel="icon" type="image/png" href="icon.PNG">
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
@@ -328,23 +329,10 @@
                 isLoading = true;
                 showLoading();
                 
-                const response = await fetch(`${API_BASE_URL}/${page}/0`);
-                
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-                
-                const data = await response.json();
-                const newPosts = data.items || [];
-                
-                if (append) {
-                    // Append new posts to existing ones
-                    allPosts = [...allPosts, ...newPosts];
-                } else {
-                    // Replace posts with new ones
-                    allPosts = newPosts;
-                    currentPage = 0;
-                }
+                // Skip API call and just clear everything
+                allPosts = [];
+                filteredPosts = [];
+                currentPage = 0;
                 
                 // Apply current filter
                 applyFilter(activeFilter);
@@ -352,21 +340,16 @@
                 // Update stats
                 updateStats();
                 
-                // Show/hide load more button
-                if (newPosts.length > 0) {
-                    loadMoreContainer.classList.remove('hidden');
-                    currentPage = page;
-                } else {
-                    loadMoreContainer.classList.add('hidden');
-                }
+                // Hide load more button since there are no posts
+                loadMoreContainer.classList.add('hidden');
                 
                 hideLoading();
                 isLoading = false;
                 
             } catch (error) {
-                console.error('Error fetching data:', error);
+                console.error('Error:', error);
                 hideLoading();
-                showError('ບໍ່ສາມາດໂຫຼດຂໍ້ມູນໄດ້. ກະລຸນາລອງໃໝ່ພາຍຫຼັງ.');
+                showError('No posts to display.');
                 isLoading = false;
             }
         }
@@ -396,9 +379,9 @@
         function showError(message) {
             postsContainer.innerHTML = `
                 <div class="col-span-full text-center py-12">
-                    <i class="fas fa-exclamation-triangle text-5xl text-red-400 mb-4"></i>
-                    <h3 class="text-xl text-red-600">ຜິດພາດ</h3>
-                    <p class="text-gray-600 mt-2">${message}</p>
+                    <i class="fas fa-images text-5xl text-gray-300 mb-4"></i>
+                    <h3 class="text-xl text-gray-600">No posts to display</h3>
+                    <p class="text-gray-500">${message || 'All cards have been removed'}</p>
                 </div>
             `;
         }
@@ -448,78 +431,17 @@
 
         // Render posts to the DOM
         function renderPosts() {
-            if (filteredPosts.length === 0) {
-                noResultsMessage.classList.remove('hidden');
-                if (!hasRenderedInitialPosts) {
-                    postsContainer.innerHTML = '';
-                }
-                return;
-            }
+            // Clear all posts (remove all cards)
+            postsContainer.innerHTML = '';
             
-            noResultsMessage.classList.add('hidden');
-            
-            // If this is the first render or we're refreshing, clear the container
-            if (!hasRenderedInitialPosts || currentPage === 0) {
-                postsContainer.innerHTML = '';
-                hasRenderedInitialPosts = true;
-            }
-            
-            // Create HTML for new posts only
-            const newPostsHTML = filteredPosts.slice(postsContainer.children.length).map((post, index) => {
-                // Adjust index to match the global filteredPosts array
-                const globalIndex = postsContainer.children.length + index;
-                
-                // Try both methods to get image URL
-                const imageUrl = post.images && post.images.length > 0 
-                    ? getDirectImageUrl(post.images[0]) // Using direct method first
-                    : null;
-                
-                return `
-                    <div class="bg-white rounded-lg shadow-md overflow-hidden card-hover fade-in">
-                        <div class="max-h-96 h-96 overflow-hidden w-full cursor-pointer image-container ${!imageUrl ? 'image-placeholder' : ''}" 
-                             ${imageUrl ? `style="background-image: url('${imageUrl}')"` : ''}
-                             onclick="openImageModal(${globalIndex})">
-                            ${!imageUrl ? `
-                                <div class="text-center">
-                                    <i class="fas fa-image text-4xl mb-2"></i>
-                                    <p>ບໍ່ມີຮູບພາບ</p>
-                                </div>
-                            ` : ''}
-                                 
-                            ${post.images && post.images.length > 1 ? `
-                                <div class="absolute top-2 right-2 bg-black bg-opacity-50 text-white px-2 py-1 rounded text-sm">
-                                    <i class="fas fa-images mr-1"></i> ${post.images.length}
-                                </div>
-                            ` : ''}
-                        </div>
-                        
-                        <div class="p-4">
-                            <p class="text-gray-700 mb-3 line-clamp-2">${post.description || 'ບໍ່ມີຄຳອະທິບາຍ'}</p>
-                            
-                            <div class="flex justify-between items-center text-sm text-gray-500">
-                                <div class="flex items-center cursor-pointer hover:text-blue-600" onclick="openLocationInGoogleMaps('${post.location ? post.location.replace(/'/g, "\\'") : 'ບໍ່ຮູ້ສະຖານທີ່'}', ${post.geo ? JSON.stringify(post.geo) : 'null'})" title="Click to view on Google Maps">
-                                    <i class="fas fa-map-marker-alt mr-1"></i>
-                                    <span>${post.location || 'ບໍ່ຮູ້ສະຖານທີ່'}</span>
-                                    <i class="fas fa-external-link-alt ml-1 text-xs"></i>
-                                </div>
-                                
-                                <div class="flex items-center">
-                                    <i class="fas fa-eye mr-1"></i>
-                                    <span>${post.view || 0}</span>
-                                </div>
-                            </div>
-                            
-                            <div class="mt-2 text-xs text-gray-400">
-                                <i class="far fa-clock mr-1"></i>
-                                ${formatDate(post.createDate)}
-                            </div>
-                        </div>
-                    </div>
-                `;
-            }).join('');
-            
-            // Append new posts to the container
-            postsContainer.insertAdjacentHTML('beforeend', newPostsHTML);
+            // Optionally show a message that no posts are displayed
+            postsContainer.innerHTML = `
+                <div class="col-span-full text-center py-12">
+                    <i class="fas fa-images text-5xl text-gray-300 mb-4"></i>
+                    <h3 class="text-xl text-gray-600">No posts to display</h3>
+                    <p class="text-gray-500">All cards have been removed</p>
+                </div>
+            `;
         }
 
         // Open image modal
