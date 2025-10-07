@@ -31,6 +31,9 @@
             position: relative;
             overflow: hidden;
             transition: transform 0.5s ease;
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
         }
         
         .image-container:hover {
@@ -168,19 +171,34 @@
     </footer>
 
     <!-- Image Modal -->
-    <div id="imageModal" class="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 hidden">
-        <div class="max-w-4xl w-full mx-4 bg-white rounded-lg overflow-hidden">
-            <div class="flex justify-between items-center p-4 border-b">
-                <h3 class="text-lg font-semibold">ຮູບພາບ</h3>
-                <button id="closeModal" class="text-gray-500 hover:text-gray-700">
-                    <i class="fas fa-times text-xl"></i>
+    <div id="imageModal" class="fixed inset-0 bg-black bg-opacity-90 flex items-center justify-center z-50 hidden">
+        <div class="relative w-full h-full flex items-center justify-center">
+            <div class="absolute top-4 right-4 z-50">
+                <button id="closeModal" class="text-white hover:text-gray-300 bg-black bg-opacity-50 rounded-full p-2">
+                    <i class="fas fa-times text-2xl"></i>
                 </button>
             </div>
-            <div class="p-4 flex justify-center">
-                <img id="modalImage" src="" alt="" class="max-h-96 rounded">
+            
+            <div class="absolute bottom-4 left-0 right-0 z-50 bg-black bg-opacity-50 text-white p-4 text-center">
+                <p id="modalDescription" class="text-lg"></p>
             </div>
-            <div class="p-4 border-t text-center">
-                <p id="modalDescription" class="text-gray-700"></p>
+            
+            <div class="relative w-full h-full flex items-center justify-center">
+                <img id="modalImage" 
+                     src="" 
+                     alt="" 
+                     class="z-40 max-h-screen max-w-screen object-contain overflow-hidden"
+                     loading="lazy"
+                     decoding="async">
+            </div>
+            
+            <div class="absolute top-4 left-4 z-50">
+                <button id="prevImage" class="text-white hover:text-gray-300 bg-black bg-opacity-50 rounded-full p-2 mr-2 hidden">
+                    <i class="fas fa-chevron-left text-2xl"></i>
+                </button>
+                <button id="nextImage" class="text-white hover:text-gray-300 bg-black bg-opacity-50 rounded-full p-2 hidden">
+                    <i class="fas fa-chevron-right text-2xl"></i>
+                </button>
             </div>
         </div>
     </div>
@@ -219,6 +237,9 @@
         let activeFilter = 'all';
         let currentPage = 0;
         let isLoading = false;
+        let currentPostIndex = -1;
+        let currentImageIndex = 0;
+        let hasRenderedInitialPosts = false;
 
         // Format date function
         function formatDate(dateString) {
@@ -232,18 +253,71 @@
             return new Date(dateString).toLocaleDateString('lo-LA', options);
         }
 
-        // Get image URL from API response
+        // Function to open location in Google Maps
+        function openLocationInGoogleMaps(location, coordinates) {
+            // If we have coordinates, use them for precise location mapping
+            if (coordinates && Array.isArray(coordinates) && coordinates.length >= 2) {
+                const [longitude, latitude] = coordinates;
+                // Check if coordinates are valid numbers
+                if (!isNaN(latitude) && !isNaN(longitude)) {
+                    // Create Google Maps URL with exact coordinates
+                    const googleMapsUrl = `https://www.google.com/maps?q=${latitude},${longitude}`;
+                    window.open(googleMapsUrl, '_blank');
+                    return;
+                }
+            }
+            
+            // Fallback to text-based search if no valid coordinates
+            if (!location || location === 'ບໍ່ຮູ້ສະຖານທີ່') return;
+            
+            // For common locations in Laos, we can provide better search terms
+            const locationMapping = {
+                'Vientiane': 'Vientiane, Laos',
+                'Phônsavan': 'Phonsavan, Laos',
+                'Luang Prabang': 'Luang Prabang, Laos',
+                'Pakse': 'Pakse, Laos'
+            };
+            
+            // Check if we have a mapped location
+            const mappedLocation = locationMapping[location] || location;
+            
+            // Encode the location for URL
+            const encodedLocation = encodeURIComponent(mappedLocation);
+            
+            // Create Google Maps URL with better search parameters
+            const googleMapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodedLocation}&query_place_id`;
+            
+            // Open in new tab
+            window.open(googleMapsUrl, '_blank');
+        }
+
+        // Get image URL from API response - FIXED VERSION
         function getImageUrl(imagePath) {
             if (!imagePath) return null;
             
-            // Extract the filename from the path
-            const filename = imagePath.split('/').pop();
+            // The image path from API is like: "73f7eb5c4b02625e4cd2a026e832296e/yb5mxt0ze3ja97hfvc4snqdkw.jpg"
+            // We need to extract the hash and filename
+            const parts = imagePath.split('/');
+            if (parts.length < 2) return null;
             
-            // Remove the file extension
-            const nameWithoutExt = filename.split('.')[0];
+            const hash = parts[0]; // "73f7eb5c4b02625e4cd2a026e832296e"
+            const filename = parts[1]; // "yb5mxt0ze3ja97hfvc4snqdkw.jpg"
             
-            // Construct the URL as shown in your example
-            return `${IMAGE_BASE_URL}${nameWithoutExt}.jpg`;
+            // Remove file extension from filename to get the image ID
+            const imageId = filename.split('.')[0]; // "yb5mxt0ze3ja97hfvc4snqdkw"
+            
+            // Construct URL like: "https://filesduab.tojsiab.com/square/450/hash/imageId.jpg"
+            return `${IMAGE_BASE_URL}${hash}/${imageId}.jpg`;
+        }
+
+        // Alternative method - direct URL construction
+        function getDirectImageUrl(imagePath) {
+            if (!imagePath) return null;
+            
+            // If the image path already contains the full structure, we can use it directly
+            // The API returns: "73f7eb5c4b02625e4cd2a026e832296e/yb5mxt0ze3ja97hfvc4snqdkw.jpg"
+            // We need: "https://filesduab.tojsiab.com/square/450/73f7eb5c4b02625e4cd2a026e832296e/yb5mxt0ze3ja97hfvc4snqdkw.jpg"
+            return `https://filesduab.tojsiab.com/square/450/${imagePath}`;
         }
 
         // Fetch data from API
@@ -305,8 +379,10 @@
         // Show loading indicator
         function showLoading() {
             loadingIndicator.classList.remove('hidden');
+            // Only clear posts container when loading initial data (page 0), not when loading more
             if (currentPage === 0) {
                 postsContainer.innerHTML = '';
+                hasRenderedInitialPosts = false;
             }
             noResultsMessage.classList.add('hidden');
         }
@@ -374,22 +450,35 @@
         function renderPosts() {
             if (filteredPosts.length === 0) {
                 noResultsMessage.classList.remove('hidden');
-                postsContainer.innerHTML = '';
+                if (!hasRenderedInitialPosts) {
+                    postsContainer.innerHTML = '';
+                }
                 return;
             }
             
             noResultsMessage.classList.add('hidden');
             
-            postsContainer.innerHTML = filteredPosts.map(post => {
+            // If this is the first render or we're refreshing, clear the container
+            if (!hasRenderedInitialPosts || currentPage === 0) {
+                postsContainer.innerHTML = '';
+                hasRenderedInitialPosts = true;
+            }
+            
+            // Create HTML for new posts only
+            const newPostsHTML = filteredPosts.slice(postsContainer.children.length).map((post, index) => {
+                // Adjust index to match the global filteredPosts array
+                const globalIndex = postsContainer.children.length + index;
+                
+                // Try both methods to get image URL
                 const imageUrl = post.images && post.images.length > 0 
-                    ? getImageUrl(post.images[0])
+                    ? getDirectImageUrl(post.images[0]) // Using direct method first
                     : null;
                 
                 return `
                     <div class="bg-white rounded-lg shadow-md overflow-hidden card-hover fade-in">
-                        <div class="max-h-96 h-96 bg-cover overflow-hidden w-full cursor-pointer image-container ${!imageUrl ? 'image-placeholder' : ''}" 
-                             style="${imageUrl ? `background-image: url('${imageUrl}')` : ''}"
-                             onclick="openImageModal('${imageUrl || ''}', '${post.description ? post.description.replace(/'/g, "\\'") : ''}')">
+                        <div class="max-h-96 h-96 overflow-hidden w-full cursor-pointer image-container ${!imageUrl ? 'image-placeholder' : ''}" 
+                             ${imageUrl ? `style="background-image: url('${imageUrl}')"` : ''}
+                             onclick="openImageModal(${globalIndex})">
                             ${!imageUrl ? `
                                 <div class="text-center">
                                     <i class="fas fa-image text-4xl mb-2"></i>
@@ -408,9 +497,10 @@
                             <p class="text-gray-700 mb-3 line-clamp-2">${post.description || 'ບໍ່ມີຄຳອະທິບາຍ'}</p>
                             
                             <div class="flex justify-between items-center text-sm text-gray-500">
-                                <div class="flex items-center">
+                                <div class="flex items-center cursor-pointer hover:text-blue-600" onclick="openLocationInGoogleMaps('${post.location ? post.location.replace(/'/g, "\\'") : 'ບໍ່ຮູ້ສະຖານທີ່'}', ${post.geo ? JSON.stringify(post.geo) : 'null'})" title="Click to view on Google Maps">
                                     <i class="fas fa-map-marker-alt mr-1"></i>
                                     <span>${post.location || 'ບໍ່ຮູ້ສະຖານທີ່'}</span>
+                                    <i class="fas fa-external-link-alt ml-1 text-xs"></i>
                                 </div>
                                 
                                 <div class="flex items-center">
@@ -427,26 +517,90 @@
                     </div>
                 `;
             }).join('');
+            
+            // Append new posts to the container
+            postsContainer.insertAdjacentHTML('beforeend', newPostsHTML);
         }
 
         // Open image modal
-        function openImageModal(imageUrl, description) {
-            if (!imageUrl) return;
+        function openImageModal(postIndex, imageIndex = 0) {
+            if (postIndex < 0 || postIndex >= filteredPosts.length) return;
             
-            modalImage.src = imageUrl;
-            modalDescription.textContent = description || 'ບໍ່ມີຄຳອະທິບາຍ';
-            imageModal.classList.remove('hidden');
+            const post = filteredPosts[postIndex];
+            if (!post.images || post.images.length === 0) return;
+            
+            // Store current indices
+            currentPostIndex = postIndex;
+            currentImageIndex = imageIndex;
+            
+            // Get full size image URL
+            const imagePath = post.images[imageIndex];
+            const fullImageUrl = `https://filesduab.tojsiab.com/full/1080/${imagePath}`;
+            
+            // Set image source with srcset for responsive images
+            const modalImage = document.getElementById('modalImage');
+            modalImage.src = fullImageUrl;
+            modalImage.srcset = `${fullImageUrl} 1x, ${fullImageUrl} 2x`;
+            modalImage.alt = post.description || 'ຮູບພາບ';
+            
+            // Set description
+            const modalDescription = document.getElementById('modalDescription');
+            modalDescription.textContent = post.description || 'ບໍ່ມີຄຳອະທິບາຍ';
+            
+            // Show/hide navigation buttons
+            const prevButton = document.getElementById('prevImage');
+            const nextButton = document.getElementById('nextImage');
+            
+            if (post.images.length > 1) {
+                prevButton.classList.remove('hidden');
+                nextButton.classList.remove('hidden');
+            } else {
+                prevButton.classList.add('hidden');
+                nextButton.classList.add('hidden');
+            }
+            
+            // Show modal
+            document.getElementById('imageModal').classList.remove('hidden');
+            
+            // Prevent body scroll
+            document.body.style.overflow = 'hidden';
+        }
+
+        // Navigate to next image
+        function nextImage() {
+            if (currentPostIndex < 0) return;
+            
+            const post = filteredPosts[currentPostIndex];
+            if (!post.images || post.images.length <= 1) return;
+            
+            currentImageIndex = (currentImageIndex + 1) % post.images.length;
+            openImageModal(currentPostIndex, currentImageIndex);
+        }
+
+        // Navigate to previous image
+        function prevImage() {
+            if (currentPostIndex < 0) return;
+            
+            const post = filteredPosts[currentPostIndex];
+            if (!post.images || post.images.length <= 1) return;
+            
+            currentImageIndex = (currentImageIndex - 1 + post.images.length) % post.images.length;
+            openImageModal(currentPostIndex, currentImageIndex);
         }
 
         // Close image modal
         function closeImageModal() {
-            imageModal.classList.add('hidden');
+            document.getElementById('imageModal').classList.add('hidden');
+            // Restore body scroll
+            document.body.style.overflow = 'auto';
         }
 
         // Event Listeners
         refreshBtn.addEventListener('click', () => fetchData(0, false));
         loadMoreBtn.addEventListener('click', loadMore);
         closeModal.addEventListener('click', closeImageModal);
+        document.getElementById('prevImage').addEventListener('click', prevImage);
+        document.getElementById('nextImage').addEventListener('click', nextImage);
         
         filterAll.addEventListener('click', () => applyFilter('all'));
         filterVientiane.addEventListener('click', () => applyFilter('vientiane'));
@@ -456,6 +610,23 @@
         imageModal.addEventListener('click', (e) => {
             if (e.target === imageModal) {
                 closeImageModal();
+            }
+        });
+
+        // Handle keyboard navigation
+        document.addEventListener('keydown', (e) => {
+            if (document.getElementById('imageModal').classList.contains('hidden')) return;
+            
+            switch(e.key) {
+                case 'Escape':
+                    closeImageModal();
+                    break;
+                case 'ArrowLeft':
+                    prevImage();
+                    break;
+                case 'ArrowRight':
+                    nextImage();
+                    break;
             }
         });
 
