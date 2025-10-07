@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Duab Toj Siab</title>
-    <link rel="icon" type="image/png" href="icon.PNG">
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
@@ -66,6 +65,40 @@
             justify-content: center;
             color: #999;
         }
+        
+        .carousel {
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .carousel-inner {
+            display: flex;
+            transition: transform 0.5s ease;
+        }
+        
+        .carousel-item {
+            min-width: 100%;
+        }
+        
+        .carousel-control {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            background: rgba(0,0,0,0.5);
+            color: white;
+            border: none;
+            padding: 10px;
+            cursor: pointer;
+            z-index: 10;
+        }
+        
+        .carousel-control.prev {
+            left: 10px;
+        }
+        
+        .carousel-control.next {
+            right: 10px;
+        }
     </style>
 </head>
 <body class="bg-gray-50">
@@ -74,7 +107,7 @@
         <div class="container mx-auto px-4 py-6">
             <div class="flex flex-col md:flex-row justify-between items-center">
                 <div class="flex items-center mb-4 md:mb-0">
-                    <img src="icon.PNG" alt="Duab Toj Siab Logo" class="h-12 w-12 mr-3">
+                    <img src="https://duabhmoobtojsiab.com/logoxs.png" alt="Duab Toj Siab Logo" class="h-12 w-12 mr-3">
                     <div>
                         <h1 class="text-2xl font-bold">Duab Toj Siab</h1>
                         <p class="text-sm opacity-80">ຮູບພາບຊາວເມືອງລາວ</p>
@@ -157,7 +190,7 @@
             <div class="flex flex-col md:flex-row justify-between items-center">
                 <div class="mb-4 md:mb-0">
                     <div class="flex items-center">
-                        <img src="icon.PNG" alt="Duab Toj Siab Logo" class="h-8 w-8 mr-2">
+                        <img src="https://duabhmoobtojsiab.com/logoxs.png" alt="Duab Toj Siab Logo" class="h-8 w-8 mr-2">
                         <span class="text-xl font-bold">Duab Toj Siab</span>
                     </div>
                     <p class="text-gray-400 mt-2">ຮູບພາບຊາວເມືອງລາວ</p>
@@ -182,6 +215,7 @@
             
             <div class="absolute bottom-4 left-0 right-0 z-50 bg-black bg-opacity-50 text-white p-4 text-center">
                 <p id="modalDescription" class="text-lg"></p>
+                <p id="modalCounter" class="text-sm mt-1"></p>
             </div>
             
             <div class="relative w-full h-full flex items-center justify-center">
@@ -193,11 +227,14 @@
                      decoding="async">
             </div>
             
-            <div class="absolute top-4 left-4 z-50">
-                <button id="prevImage" class="text-white hover:text-gray-300 bg-black bg-opacity-50 rounded-full p-2 mr-2 hidden">
+            <div class="absolute top-1/2 left-4 z-50 transform -translate-y-1/2">
+                <button id="prevImage" class="text-white hover:text-gray-300 bg-black bg-opacity-50 rounded-full p-3 hidden">
                     <i class="fas fa-chevron-left text-2xl"></i>
                 </button>
-                <button id="nextImage" class="text-white hover:text-gray-300 bg-black bg-opacity-50 rounded-full p-2 hidden">
+            </div>
+            
+            <div class="absolute top-1/2 right-4 z-50 transform -translate-y-1/2">
+                <button id="nextImage" class="text-white hover:text-gray-300 bg-black bg-opacity-50 rounded-full p-3 hidden">
                     <i class="fas fa-chevron-right text-2xl"></i>
                 </button>
             </div>
@@ -241,6 +278,7 @@
         let currentPostIndex = -1;
         let currentImageIndex = 0;
         let hasRenderedInitialPosts = false;
+        let carouselStates = {}; // Track carousel states
 
         // Format date function
         function formatDate(dateString) {
@@ -254,71 +292,258 @@
             return new Date(dateString).toLocaleDateString('lo-LA', options);
         }
 
-        // Function to open location in Google Maps
-        function openLocationInGoogleMaps(location, coordinates) {
-            // If we have coordinates, use them for precise location mapping
-            if (coordinates && Array.isArray(coordinates) && coordinates.length >= 2) {
-                const [longitude, latitude] = coordinates;
-                // Check if coordinates are valid numbers
-                if (!isNaN(latitude) && !isNaN(longitude)) {
-                    // Create Google Maps URL with exact coordinates
-                    const googleMapsUrl = `https://www.google.com/maps?q=${latitude},${longitude}`;
-                    window.open(googleMapsUrl, '_blank');
-                    return;
-                }
-            }
-            
-            // Fallback to text-based search if no valid coordinates
-            if (!location || location === 'ບໍ່ຮູ້ສະຖານທີ່') return;
-            
-            // For common locations in Laos, we can provide better search terms
-            const locationMapping = {
-                'Vientiane': 'Vientiane, Laos',
-                'Phônsavan': 'Phonsavan, Laos',
-                'Luang Prabang': 'Luang Prabang, Laos',
-                'Pakse': 'Pakse, Laos'
-            };
-            
-            // Check if we have a mapped location
-            const mappedLocation = locationMapping[location] || location;
-            
-            // Encode the location for URL
-            const encodedLocation = encodeURIComponent(mappedLocation);
-            
-            // Create Google Maps URL with better search parameters
-            const googleMapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodedLocation}&query_place_id`;
-            
-            // Open in new tab
-            window.open(googleMapsUrl, '_blank');
-        }
-
         // Get image URL from API response - FIXED VERSION
         function getImageUrl(imagePath) {
             if (!imagePath) return null;
             
-            // The image path from API is like: "73f7eb5c4b02625e4cd2a026e832296e/yb5mxt0ze3ja97hfvc4snqdkw.jpg"
-            // We need to extract the hash and filename
-            const parts = imagePath.split('/');
-            if (parts.length < 2) return null;
-            
-            const hash = parts[0]; // "73f7eb5c4b02625e4cd2a026e832296e"
-            const filename = parts[1]; // "yb5mxt0ze3ja97hfvc4snqdkw.jpg"
-            
-            // Remove file extension from filename to get the image ID
-            const imageId = filename.split('.')[0]; // "yb5mxt0ze3ja97hfvc4snqdkw"
-            
-            // Construct URL like: "https://filesduab.tojsiab.com/square/450/hash/imageId.jpg"
-            return `${IMAGE_BASE_URL}${hash}/${imageId}.jpg`;
+            // The image path from API is like: "dc07811cf3218ba16c4886c9ffa6fb29/1iexsd7hvnr369qm2bytfjcu0.jpg"
+            // We need to construct: "https://duabhmoobtojsiab.com/dc07811cf3218ba16c4886c9ffa6fb29/1iexsd7hvnr369qm2bytfjcu0.jpg"
+            return `${IMAGE_BASE_URL}${imagePath}`;
         }
 
-        // Alternative method - direct URL construction
-        function getDirectImageUrl(imagePath) {
-            if (!imagePath) return null;
+        // Create carousel for multiple images
+        function createImageCarousel(images, postId, description) {
+            if (!images || images.length === 0) {
+                return `
+                    <div class="max-h-96 h-96 overflow-hidden w-full cursor-pointer image-placeholder" 
+                         onclick="openImageModal('', '${description ? description.replace(/'/g, "\\'") : ''}')">
+                        <div class="text-center">
+                            <i class="fas fa-image text-4xl mb-2"></i>
+                            <p>ບໍ່ມີຮູບພາບ</p>
+                        </div>
+                    </div>
+                `;
+            }
             
-            // If the image path already contains the full structure, we can use it directly
-            // The API returns: "73f7eb5c4b02625e4cd2a026e832296e/yb5mxt0ze3ja97hfvc4snqdkw.jpg"
-            // We need: "https://filesduab.tojsiab.com/square/450/73f7eb5c4b02625e4cd2a026e832296e/yb5mxt0ze3ja97hfvc4snqdkw.jpg"
-            return `https://filesduab.tojsiab.com/square/450/${imagePath}`;
+            if (images.length === 1) {
+                const imageUrl = getImageUrl(images[0]);
+                return `
+                    <div class="max-h-96 h-96 overflow-hidden w-full cursor-pointer image-container" 
+                         style="background-image: url('${imageUrl}')"
+                         onclick="openImageModal('${imageUrl}', '${description ? description.replace(/'/g, "\\'") : ''}', '${postId}', 0)">
+                         <div class="absolute top-2 right-2 bg-black bg-opacity-50 text-white px-2 py-1 rounded text-sm">
+                            <i class="fas fa-images mr-1"></i> ${images.length}
+                        </div>
+                    </div>
+                `;
+            }
+            
+            // For multiple images, create a carousel
+            return `
+                <div class="carousel max-h-96 h-96 overflow-hidden w-full relative" id="carousel-${postId}">
+                    <div class="carousel-inner h-full">
+                        ${images.map((image, index) => {
+                            const imageUrl = getImageUrl(image);
+                            return `
+                                <div class="carousel-item h-full ${index === 0 ? 'active' : ''}">
+                                    <div class="max-h-96 h-96 overflow-hidden w-full cursor-pointer image-container" 
+                                         style="background-image: url('${imageUrl}')"
+                                         onclick="openImageModal('${imageUrl}', '${description ? description.replace(/'/g, "\\'") : ''}', '${postId}', ${index})">
+                                    </div>
+                                </div>
+                            `;
+                        }).join('')}
+                    </div>
+                    <button class="carousel-control prev absolute left-2 top-1/2 transform -translate-y-1/2 bg-black bg-opacity-50 text-white rounded-full p-2" onclick="prevSlide('${postId}')">
+                        <i class="fas fa-chevron-left"></i>
+                    </button>
+                    <button class="carousel-control next absolute right-2 top-1/2 transform -translate-y-1/2 bg-black bg-opacity-50 text-white rounded-full p-2" onclick="nextSlide('${postId}')">
+                        <i class="fas fa-chevron-right"></i>
+                    </button>
+                    <div class="absolute bottom-2 left-0 right-0 flex justify-center space-x-1">
+                        ${images.map((_, index) => `
+                            <button class="w-2 h-2 rounded-full ${index === 0 ? 'bg-white' : 'bg-gray-400'}" 
+                                    onclick="goToSlide('${postId}', ${index})"></button>
+                        `).join('')}
+                    </div>
+                    <div class="absolute top-2 right-2 bg-black bg-opacity-50 text-white px-2 py-1 rounded text-sm">
+                        <i class="fas fa-images mr-1"></i> ${images.length}
+                    </div>
+                </div>
+            `;
+        }
+
+        // Carousel functions
+        function prevSlide(carouselId) {
+            const carousel = document.getElementById(`carousel-${carouselId}`);
+            if (!carousel) return;
+            
+            const items = carousel.querySelectorAll('.carousel-item');
+            if (items.length <= 1) return;
+            
+            const activeIndex = Array.from(items).findIndex(item => item.classList.contains('active'));
+            const newIndex = (activeIndex - 1 + items.length) % items.length;
+            updateCarousel(carouselId, newIndex);
+        }
+
+        function nextSlide(carouselId) {
+            const carousel = document.getElementById(`carousel-${carouselId}`);
+            if (!carousel) return;
+            
+            const items = carousel.querySelectorAll('.carousel-item');
+            if (items.length <= 1) return;
+            
+            const activeIndex = Array.from(items).findIndex(item => item.classList.contains('active'));
+            const newIndex = (activeIndex + 1) % items.length;
+            updateCarousel(carouselId, newIndex);
+        }
+
+        function goToSlide(carouselId, index) {
+            updateCarousel(carouselId, index);
+        }
+
+        function updateCarousel(postId, activeIndex) {
+            const carousel = document.getElementById(`carousel-${postId}`);
+            if (!carousel) return;
+            
+            const items = carousel.querySelectorAll('.carousel-item');
+            const dots = carousel.querySelectorAll('button.w-2.h-2');
+            
+            // Update active item
+            items.forEach((item, index) => {
+                if (index === activeIndex) {
+                    item.classList.add('active');
+                } else {
+                    item.classList.remove('active');
+                }
+            });
+            
+            // Update dots
+            dots.forEach((dot, index) => {
+                if (index === activeIndex) {
+                    dot.classList.remove('bg-gray-400');
+                    dot.classList.add('bg-white');
+                } else {
+                    dot.classList.remove('bg-white');
+                    dot.classList.add('bg-gray-400');
+                }
+            });
+            
+            // Store current index for this carousel
+            carouselStates[postId] = activeIndex;
+        }
+
+        // Open image modal with carousel support
+        function openImageModal(imageUrl, description, postId, imageIndex = 0) {
+            // If we have a postId and imageIndex, it's from a carousel
+            if (postId && imageIndex !== undefined) {
+                currentPostIndex = filteredPosts.findIndex(post => post._id === postId);
+                currentImageIndex = imageIndex;
+            }
+            
+            // Get full size image URL
+            let fullImageUrl = imageUrl;
+            if (imageUrl && imageUrl.includes('/square/')) {
+                // Convert square image URL to full size
+                fullImageUrl = imageUrl.replace('/square/450/', '/full/1080/');
+            }
+            
+            // Set image source with srcset for responsive images
+            const modalImage = document.getElementById('modalImage');
+            if (fullImageUrl) {
+                modalImage.src = fullImageUrl;
+                modalImage.srcset = `${fullImageUrl} 1x, ${fullImageUrl} 2x`;
+                modalImage.alt = description || 'ຮູບພາບ';
+            } else {
+                modalImage.src = '';
+                modalImage.srcset = '';
+                modalImage.alt = 'ບໍ່ມີຮູບພາບ';
+            }
+            
+            // Set description
+            const modalDescription = document.getElementById('modalDescription');
+            modalDescription.textContent = description || 'ບໍ່ມີຄຳອະທິບາຍ';
+            
+            // Show/hide navigation buttons for carousel
+            const prevButton = document.getElementById('prevImage');
+            const nextButton = document.getElementById('nextImage');
+            
+            // Check if this is from a post with multiple images
+            if (currentPostIndex >= 0 && currentPostIndex < filteredPosts.length) {
+                const post = filteredPosts[currentPostIndex];
+                if (post.images && post.images.length > 1) {
+                    prevButton.classList.remove('hidden');
+                    nextButton.classList.remove('hidden');
+                } else {
+                    prevButton.classList.add('hidden');
+                    nextButton.classList.add('hidden');
+                }
+            } else {
+                prevButton.classList.add('hidden');
+                nextButton.classList.add('hidden');
+            }
+            
+            // Show modal
+            document.getElementById('imageModal').classList.remove('hidden');
+            
+            // Prevent body scroll
+            document.body.style.overflow = 'hidden';
+        }
+
+        // Navigate to next image in modal
+        function nextImage() {
+            if (currentPostIndex < 0 || currentPostIndex >= filteredPosts.length) return;
+            
+            const post = filteredPosts[currentPostIndex];
+            if (!post.images || post.images.length <= 1) return;
+            
+            currentImageIndex = (currentImageIndex + 1) % post.images.length;
+            
+            // Get the image URL
+            const imagePath = post.images[currentImageIndex];
+            const imageUrl = getImageUrl(imagePath);
+            const fullImageUrl = imageUrl.replace('/square/450/', '/full/1080/');
+            
+            // Update modal
+            const modalImage = document.getElementById('modalImage');
+            modalImage.src = fullImageUrl;
+            modalImage.srcset = `${fullImageUrl} 1x, ${fullImageUrl} 2x`;
+            modalImage.alt = post.description || 'ຮູບພາບ';
+            
+            const modalDescription = document.getElementById('modalDescription');
+            modalDescription.textContent = post.description || 'ບໍ່ມີຄຳອະທິບາຍ';
+            
+            // Update counter
+            const modalCounter = document.getElementById('modalCounter');
+            modalCounter.textContent = `${currentImageIndex + 1} / ${post.images.length}`;
+        }
+
+        // Navigate to previous image in modal
+        function prevImage() {
+            if (currentPostIndex < 0 || currentPostIndex >= filteredPosts.length) return;
+            
+            const post = filteredPosts[currentPostIndex];
+            if (!post.images || post.images.length <= 1) return;
+            
+            currentImageIndex = (currentImageIndex - 1 + post.images.length) % post.images.length;
+            
+            // Get the image URL
+            const imagePath = post.images[currentImageIndex];
+            const imageUrl = getImageUrl(imagePath);
+            const fullImageUrl = imageUrl.replace('/square/450/', '/full/1080/');
+            
+            // Update modal
+            const modalImage = document.getElementById('modalImage');
+            modalImage.src = fullImageUrl;
+            modalImage.srcset = `${fullImageUrl} 1x, ${fullImageUrl} 2x`;
+            modalImage.alt = post.description || 'ຮູບພາບ';
+            
+            const modalDescription = document.getElementById('modalDescription');
+            modalDescription.textContent = post.description || 'ບໍ່ມີຄຳອະທິບາຍ';
+            
+            // Update counter
+            const modalCounter = document.getElementById('modalCounter');
+            modalCounter.textContent = `${currentImageIndex + 1} / ${post.images.length}`;
+        }
+
+        // Close image modal
+        function closeImageModal() {
+            document.getElementById('imageModal').classList.add('hidden');
+            // Restore body scroll
+            document.body.style.overflow = 'auto';
+            // Reset indices
+            currentPostIndex = -1;
+            currentImageIndex = 0;
         }
 
         // Fetch data from API
@@ -329,10 +554,23 @@
                 isLoading = true;
                 showLoading();
                 
-                // Skip API call and just clear everything
-                allPosts = [];
-                filteredPosts = [];
-                currentPage = 0;
+                const response = await fetch(`${API_BASE_URL}/${page}/0`);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                const newPosts = data.items || [];
+                
+                if (append) {
+                    // Append new posts to existing ones
+                    allPosts = [...allPosts, ...newPosts];
+                } else {
+                    // Replace posts with new ones
+                    allPosts = newPosts;
+                    currentPage = 0;
+                }
                 
                 // Apply current filter
                 applyFilter(activeFilter);
@@ -340,16 +578,21 @@
                 // Update stats
                 updateStats();
                 
-                // Hide load more button since there are no posts
-                loadMoreContainer.classList.add('hidden');
+                // Show/hide load more button
+                if (newPosts.length > 0) {
+                    loadMoreContainer.classList.remove('hidden');
+                    currentPage = page;
+                } else {
+                    loadMoreContainer.classList.add('hidden');
+                }
                 
                 hideLoading();
                 isLoading = false;
                 
             } catch (error) {
-                console.error('Error:', error);
+                console.error('Error fetching data:', error);
                 hideLoading();
-                showError('No posts to display.');
+                showError('ບໍ່ສາມາດໂຫຼດຂໍ້ມູນໄດ້. ກະລຸນາລອງໃໝ່ພາຍຫຼັງ.');
                 isLoading = false;
             }
         }
@@ -362,10 +605,8 @@
         // Show loading indicator
         function showLoading() {
             loadingIndicator.classList.remove('hidden');
-            // Only clear posts container when loading initial data (page 0), not when loading more
             if (currentPage === 0) {
                 postsContainer.innerHTML = '';
-                hasRenderedInitialPosts = false;
             }
             noResultsMessage.classList.add('hidden');
         }
@@ -379,9 +620,9 @@
         function showError(message) {
             postsContainer.innerHTML = `
                 <div class="col-span-full text-center py-12">
-                    <i class="fas fa-images text-5xl text-gray-300 mb-4"></i>
-                    <h3 class="text-xl text-gray-600">No posts to display</h3>
-                    <p class="text-gray-500">${message || 'All cards have been removed'}</p>
+                    <i class="fas fa-exclamation-triangle text-5xl text-red-400 mb-4"></i>
+                    <h3 class="text-xl text-red-600">ຜິດພາດ</h3>
+                    <p class="text-gray-600 mt-2">${message}</p>
                 </div>
             `;
         }
@@ -431,54 +672,120 @@
 
         // Render posts to the DOM
         function renderPosts() {
-            // Clear all posts (remove all cards)
-            postsContainer.innerHTML = '';
+            if (filteredPosts.length === 0) {
+                noResultsMessage.classList.remove('hidden');
+                if (!hasRenderedInitialPosts) {
+                    postsContainer.innerHTML = '';
+                }
+                return;
+            }
             
-            // Optionally show a message that no posts are displayed
-            postsContainer.innerHTML = `
-                <div class="col-span-full text-center py-12">
-                    <i class="fas fa-images text-5xl text-gray-300 mb-4"></i>
-                    <h3 class="text-xl text-gray-600">No posts to display</h3>
-                    <p class="text-gray-500">All cards have been removed</p>
-                </div>
-            `;
+            noResultsMessage.classList.add('hidden');
+            
+            // If this is the first render or we're refreshing, clear the container
+            if (!hasRenderedInitialPosts || currentPage === 0) {
+                postsContainer.innerHTML = '';
+                hasRenderedInitialPosts = true;
+            }
+            
+            // Create HTML for new posts only
+            const newPostsHTML = filteredPosts.slice(postsContainer.children.length).map((post, index) => {
+                // Adjust index to match the global filteredPosts array
+                const globalIndex = postsContainer.children.length + index;
+                
+                return `
+                    <div class="bg-white rounded-lg shadow-md overflow-hidden card-hover fade-in">
+                        ${createImageCarousel(post.images, post._id, post.description || 'ບໍ່ມີຄຳອະທິບາຍ')}
+                        
+                        <div class="p-4">
+                            <p class="text-gray-700 mb-3 line-clamp-2">${post.description || 'ບໍ່ມີຄຳອະທິບາຍ'}</p>
+                            
+                            <div class="flex justify-between items-center text-sm text-gray-500">
+                                <div class="flex items-center cursor-pointer hover:text-blue-600" onclick="openLocationInGoogleMaps('${post.location ? post.location.replace(/'/g, "\\'") : 'ບໍ່ຮູ້ສະຖານທີ່'}', ${post.geo ? JSON.stringify(post.geo) : 'null'})" title="Click to view on Google Maps">
+                                    <i class="fas fa-map-marker-alt mr-1"></i>
+                                    <span>${post.location || 'ບໍ່ຮູ້ສະຖານທີ່'}</span>
+                                    <i class="fas fa-external-link-alt ml-1 text-xs"></i>
+                                </div>
+                                
+                                <div class="flex items-center">
+                                    <i class="fas fa-eye mr-1"></i>
+                                    <span>${post.view || 0}</span>
+                                </div>
+                            </div>
+                            
+                            <div class="mt-2 text-xs text-gray-400">
+                                <i class="far fa-clock mr-1"></i>
+                                ${formatDate(post.createDate)}
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+            
+            // Append new posts to the container
+            postsContainer.insertAdjacentHTML('beforeend', newPostsHTML);
         }
 
-        // Open image modal
-        function openImageModal(postIndex, imageIndex = 0) {
-            if (postIndex < 0 || postIndex >= filteredPosts.length) return;
-            
-            const post = filteredPosts[postIndex];
-            if (!post.images || post.images.length === 0) return;
-            
-            // Store current indices
-            currentPostIndex = postIndex;
-            currentImageIndex = imageIndex;
+        // Open image modal (backward compatibility)
+        function openImageModal(imageUrl, description, postId, imageIndex = 0) {
+            // If we have a postId and imageIndex, it's from a carousel
+            if (postId && imageIndex !== undefined) {
+                currentPostIndex = filteredPosts.findIndex(post => post._id === postId);
+                currentImageIndex = imageIndex;
+            }
             
             // Get full size image URL
-            const imagePath = post.images[imageIndex];
-            const fullImageUrl = `https://filesduab.tojsiab.com/full/1080/${imagePath}`;
+            let fullImageUrl = imageUrl;
+            if (imageUrl && imageUrl.includes('/square/')) {
+                // Convert square image URL to full size
+                fullImageUrl = imageUrl.replace('/square/450/', '/full/1080/');
+            }
             
             // Set image source with srcset for responsive images
             const modalImage = document.getElementById('modalImage');
-            modalImage.src = fullImageUrl;
-            modalImage.srcset = `${fullImageUrl} 1x, ${fullImageUrl} 2x`;
-            modalImage.alt = post.description || 'ຮູບພາບ';
+            if (fullImageUrl) {
+                modalImage.src = fullImageUrl;
+                modalImage.srcset = `${fullImageUrl} 1x, ${fullImageUrl} 2x`;
+                modalImage.alt = description || 'ຮູບພາບ';
+            } else {
+                modalImage.src = '';
+                modalImage.srcset = '';
+                modalImage.alt = 'ບໍ່ມີຮູບພາບ';
+            }
             
             // Set description
             const modalDescription = document.getElementById('modalDescription');
-            modalDescription.textContent = post.description || 'ບໍ່ມີຄຳອະທິບາຍ';
+            modalDescription.textContent = description || 'ບໍ່ມີຄຳອະທິບາຍ';
             
-            // Show/hide navigation buttons
+            // Show/hide navigation buttons for carousel
             const prevButton = document.getElementById('prevImage');
             const nextButton = document.getElementById('nextImage');
             
-            if (post.images.length > 1) {
-                prevButton.classList.remove('hidden');
-                nextButton.classList.remove('hidden');
+            // Check if this is from a post with multiple images
+            if (currentPostIndex >= 0 && currentPostIndex < filteredPosts.length) {
+                const post = filteredPosts[currentPostIndex];
+                if (post.images && post.images.length > 1) {
+                    prevButton.classList.remove('hidden');
+                    nextButton.classList.remove('hidden');
+                    
+                    // Update counter
+                    const modalCounter = document.getElementById('modalCounter');
+                    modalCounter.textContent = `${currentImageIndex + 1} / ${post.images.length}`;
+                } else {
+                    prevButton.classList.add('hidden');
+                    nextButton.classList.add('hidden');
+                    
+                    // Clear counter
+                    const modalCounter = document.getElementById('modalCounter');
+                    modalCounter.textContent = '';
+                }
             } else {
                 prevButton.classList.add('hidden');
                 nextButton.classList.add('hidden');
+                
+                // Clear counter
+                const modalCounter = document.getElementById('modalCounter');
+                modalCounter.textContent = '';
             }
             
             // Show modal
@@ -488,45 +795,26 @@
             document.body.style.overflow = 'hidden';
         }
 
-        // Navigate to next image
-        function nextImage() {
-            if (currentPostIndex < 0) return;
-            
-            const post = filteredPosts[currentPostIndex];
-            if (!post.images || post.images.length <= 1) return;
-            
-            currentImageIndex = (currentImageIndex + 1) % post.images.length;
-            openImageModal(currentPostIndex, currentImageIndex);
-        }
-
-        // Navigate to previous image
-        function prevImage() {
-            if (currentPostIndex < 0) return;
-            
-            const post = filteredPosts[currentPostIndex];
-            if (!post.images || post.images.length <= 1) return;
-            
-            currentImageIndex = (currentImageIndex - 1 + post.images.length) % post.images.length;
-            openImageModal(currentPostIndex, currentImageIndex);
-        }
-
         // Close image modal
         function closeImageModal() {
-            document.getElementById('imageModal').classList.add('hidden');
-            // Restore body scroll
-            document.body.style.overflow = 'auto';
+            imageModal.classList.add('hidden');
+            
+            // Allow body scroll
+            document.body.style.overflow = '';
         }
 
         // Event Listeners
         refreshBtn.addEventListener('click', () => fetchData(0, false));
         loadMoreBtn.addEventListener('click', loadMore);
         closeModal.addEventListener('click', closeImageModal);
-        document.getElementById('prevImage').addEventListener('click', prevImage);
-        document.getElementById('nextImage').addEventListener('click', nextImage);
         
         filterAll.addEventListener('click', () => applyFilter('all'));
         filterVientiane.addEventListener('click', () => applyFilter('vientiane'));
         filterPhonsavan.addEventListener('click', () => applyFilter('phonsavan'));
+        
+        // Modal navigation
+        document.getElementById('prevImage').addEventListener('click', prevImage);
+        document.getElementById('nextImage').addEventListener('click', nextImage);
         
         // Close modal when clicking outside the image
         imageModal.addEventListener('click', (e) => {
@@ -534,21 +822,17 @@
                 closeImageModal();
             }
         });
-
-        // Handle keyboard navigation
+        
+        // Keyboard navigation
         document.addEventListener('keydown', (e) => {
-            if (document.getElementById('imageModal').classList.contains('hidden')) return;
-            
-            switch(e.key) {
-                case 'Escape':
-                    closeImageModal();
-                    break;
-                case 'ArrowLeft':
+            if (!document.getElementById('imageModal').classList.contains('hidden')) {
+                if (e.key === 'ArrowLeft') {
                     prevImage();
-                    break;
-                case 'ArrowRight':
+                } else if (e.key === 'ArrowRight') {
                     nextImage();
-                    break;
+                } else if (e.key === 'Escape') {
+                    closeImageModal();
+                }
             }
         });
 
