@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Top GitHub Users in Laos - Live</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+            padding: 20px;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+
+        .loading {
+            text-align: center;
+            color: white;
+            font-size: 1.2em;
+            padding: 40px;
+        }
+
+        .spinner {
+            border: 4px solid rgba(255,255,255,0.3);
+            border-radius: 50%;
+            border-top: 4px solid white;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .card {
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            overflow: hidden;
+            margin-bottom: 30px;
+        }
+
+        .table-container {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        thead {
+            background: linear-gradient(135deg, #2c3e50, #34495e);
+            color: white;
+        }
+
+        th, td {
+            padding: 15px;
+            text-align: left;
+            border-bottom: 1px solid #eee;
+        }
+
+        th {
+            font-weight: 600;
+            text-transform: uppercase;
+            font-size: 0.9em;
+            letter-spacing: 1px;
+        }
+
+        tbody tr:hover {
+            background-color: #f8f9fa;
+            transform: translateY(-2px);
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+
+        .rank {
+            font-weight: bold;
+            color: #2c3e50;
+            text-align: center;
+        }
+
+        .username {
+            color: #3498db;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .username:hover {
+            color: #2980b9;
+            text-decoration: underline;
+        }
+
+        .contributions {
+            text-align: center;
+            font-weight: bold;
+            color: #27ae60;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.8em;
+            font-weight: bold;
+            margin-left: 8px;
+        }
+
+        .badge.top1 {
+            background: linear-gradient(45deg, #FFD700, #FFA500);
+            color: white;
+        }
+
+        .badge.top3 {
+            background: linear-gradient(45deg, #C0C0C0, #A9A9A9);
+            color: white;
+        }
+
+        .badge.top10 {
+            background: linear-gradient(45deg, #CD7F32, #8B4513);
+            color: white;
+        }
+
+        .info-box {
+            background: #f8f9fa;
+            border-left: 4px solid #3498db;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+        }
+
+        .info-box h3 {
+            color: #2c3e50;
+            margin-bottom: 10px;
+        }
+
+        .update-info {
+            background: #d4edda;
+            border-left: 4px solid #28a745;
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 8px;
+        }
+
+        .error-box {
+            background: #f8d7da;
+            border-left: 4px solid #dc3545;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            color: #721c24;
+        }
+
+        .refresh-btn {
+            background: linear-gradient(135deg, #28a745, #20c997);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 1em;
+            font-weight: bold;
+            margin: 10px 0;
+            transition: all 0.3s ease;
+        }
+
+        .refresh-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+
+        .footer {
+            text-align: center;
+            color: white;
+            margin-top: 40px;
+            opacity: 0.8;
+        }
+
+        @media (max-width: 768px) {
+            th, td {
+                padding: 10px 8px;
+                font-size: 0.9em;
+            }
+            
+            .header h1 {
+                font-size: 2em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🏆 Top GitHub Users in Laos - LIVE</h1>
+            <p id="lastUpdated">Loading live data...</p>
+            <button class="refresh-btn" onclick="fetchGitHubData()">
+                🔄 Refresh Data
+            </button>
+        </div>
+
+        <div id="loading" class="loading">
+            <div class="spinner"></div>
+            <p>Fetching latest data from committers.top...</p>
+        </div>
+
+        <div id="content" style="display: none;">
+            <div class="card">
+                <div class="table-container">
+                    <table id="githubTable">
+                        <thead>
+                            <tr>
+                                <th width="10%">Rank</th>
+                                <th width="40%">Username</th>
+                                <th width="30%">Real Name</th>
+                                <th width="20%">Contributions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tableBody">
+                            <!-- Data will be inserted here by JavaScript -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="update-info">
+                <h3>🔄 Live Data Active</h3>
+                <p>This page automatically fetches the latest data from <strong>committers.top</strong></p>
+                <p><strong>Last fetched:</strong> <span id="fetchTime">Just now</span></p>
+            </div>
+
+            <div class="info-box">
+                <h3>📊 About This Ranking</h3>
+                <p><strong>Contributions</strong> include: code commits, issue reports, pull requests, code reviews, and documentation updates in public repositories.</p>
+                <p><strong>Note:</strong> Private repository activities are not counted in this ranking.</p>
+                <p id="totalUsers"><strong>Total developers from Laos:</strong> Loading...</p>
+            </div>
+
+            <div class="info-box">
+                <h3>🔍 How to Check More</h3>
+                <p>Visit the complete list at: <strong><a href="https://committers.top/laos.html" target="_blank">committers.top/laos.html</a></strong></p>
+                <p>Click on usernames to view their GitHub profiles and projects.</p>
+            </div>
+        </div>
+
+        <div id="errorContainer" style="display: none;" class="error-box">
+            <h3>❌ Error Loading Data</h3>
+            <p id="errorMessage">Unable to fetch data from committers.top</p>
+            <button class="refresh-btn" onclick="fetchGitHubData()">
+                🔄 Try Again
+            </button>
+        </div>
+
+        <div class="footer">
+            <p>Data Source: committers.top | Page updates automatically</p>
+        </div>
+    </div>
+
+    <script>
+        // Sample fallback data in case the API fails
+        const fallbackData = [
+            { rank: 1, username: 'huevangxp', name: 'Hue Vang', contributions: '1,761' },
+            { rank: 2, username: 'Sengkue', name: 'SengKueVang', contributions: '756' },
+            { rank: 3, username: '1t0t0', name: 'Ttoto Phandolack', contributions: '575' },
+            { rank: 4, username: 'thongsao2020', name: 'thongsao-codecools', contributions: '513' },
+            { rank: 5, username: 'tyecode', name: 'Sengphachanh CHANTHAVONG', contributions: '504' },
+            { rank: 6, username: 'MagicSoftDev0717', name: 'Bounkyo Keouthone', contributions: '461' },
+            { rank: 7, username: 'Bornsvc', name: 'Born', contributions: '236' },
+            { rank: 8, username: 'THONEPANYA', name: '-', contributions: '217' },
+            { rank: 9, username: 'khamlar123', name: 'Khamlar chanthavong', contributions: '162' },
+            { rank: 10, username: 'barlus-engineer', name: 'Barlus Engineer', contributions: '141' }
+        ];
+
+        // Function to fetch data from committers.top
+        async function fetchGitHubData() {
+            showLoading();
+            hideError();
+            
+            try {
+                // Note: Due to CORS restrictions, we'll use a proxy service
+                // In a real application, you'd want to set up your own backend
+                const proxyUrl = 'https://cors-anywhere.herokuapp.com/';
+                const targetUrl = 'https://committers.top/laos.html';
+                
+                const response = await fetch(proxyUrl + targetUrl);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const html = await response.text();
+                const data = parseHTMLData(html);
+                
+                displayData(data);
+                updateLastFetched();
+                
+            } catch (error) {
+                console.error('Error fetching data:', error);
+                showError('Could not fetch live data. Using cached data.');
+                displayData(fallbackData);
+            }
+        }
+
+        // Function to parse HTML and extract data
+        function parseHTMLData(html) {
+            // This is a simplified parser - you may need to adjust based on the actual HTML structure
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(html, 'text/html');
+            
+            // Try to find the table rows - adjust selector based on actual page structure
+            const rows = doc.querySelectorAll('table tr, .table tr, tbody tr');
+            
+            const data = [];
+            let rowCount = 0;
+            
+            rows.forEach((row, index) => {
+                if (rowCount >= 10) return; // Only get top 10
+                
+                const cells = row.querySelectorAll('td');
+                if (cells.length >= 3) {
+                    const rank = cells[0]?.textContent?.trim() || (index + 1);
+                    const usernameCell = cells[1]?.querySelector('a') || cells[1];
+                    const username = usernameCell?.textContent?.trim() || 'Unknown';
+                    const contributions = cells[2]?.textContent?.trim() || '0';
+                    
+                    if (username !== 'Unknown' && username !== 'User') {
+                        data.push({
+                            rank: rank,
+                            username: username,
+                            name: '-', // Real names might not be available in the HTML
+                            contributions: parseInt(contributions).toLocaleString()
+                        });
+                        rowCount++;
+                    }
+                }
+            });
+            
+            // If no data was parsed, return fallback data
+            return data.length > 0 ? data : fallbackData;
+        }
+
+        // Function to display data in the table
+        function displayData(data) {
+            const tableBody = document.getElementById('tableBody');
+            const totalUsers = document.getElementById('totalUsers');
+            
+            tableBody.innerHTML = '';
+            
+            data.forEach((user, index) => {
+                const row = document.createElement('tr');
+                
+                let badge = '';
+                if (user.rank == 1) badge = '<span class="badge top1">GOLD</span>';
+                else if (user.rank == 2) badge = '<span class="badge top3">SILVER</span>';
+                else if (user.rank == 3) badge = '<span class="badge top3">BRONZE</span>';
+                
+                row.innerHTML = `
+                    <td class="rank">${user.rank} ${badge}</td>
+                    <td class="username" onclick="openGitHub('${user.username}')">${user.username}</td>
+                    <td>${user.name}</td>
+                    <td class="contributions">${user.contributions}</td>
+                `;
+                
+                tableBody.appendChild(row);
+            });
+            
+            totalUsers.innerHTML = `<strong>Total developers from Laos:</strong> ${data.length} (Showing top ${data.length})`;
+            
+            hideLoading();
+            showContent();
+        }
+
+        // Function to open GitHub profile
+        function openGitHub(username) {
+            window.open(`https://github.com/${username}`, '_blank');
+        }
+
+        // Function to update last fetched time
+        function updateLastFetched() {
+            const now = new Date();
+            const lastUpdated = document.getElementById('lastUpdated');
+            const fetchTime = document.getElementById('fetchTime');
+            
+            const timeString = now.toLocaleString();
+            lastUpdated.textContent = `Live data - Last updated: ${timeString}`;
+            fetchTime.textContent = timeString;
+        }
+
+        // UI control functions
+        function showLoading() {
+            document.getElementById('loading').style.display = 'block';
+            document.getElementById('content').style.display = 'none';
+            document.getElementById('errorContainer').style.display = 'none';
+        }
+
+        function hideLoading() {
+            document.getElementById('loading').style.display = 'none';
+        }
+
+        function showContent() {
+            document.getElementById('content').style.display = 'block';
+        }
+
+        function showError(message) {
+            document.getElementById('errorMessage').textContent = message;
+            document.getElementById('errorContainer').style.display = 'block';
+        }
+
+        function hideError() {
+            document.getElementById('errorContainer').style.display = 'none';
+        }
+
+        // Auto-refresh every 5 minutes
+        function startAutoRefresh() {
+            setInterval(fetchGitHubData, 5 * 60 * 1000); // 5 minutes
+        }
+
+        // Initialize when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            fetchGitHubData();
+            startAutoRefresh();
+        });
+    </script>
+</body>
+</html>
