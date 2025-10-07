@@ -107,7 +107,7 @@
         <div class="container mx-auto px-4 py-6">
             <div class="flex flex-col md:flex-row justify-between items-center">
                 <div class="flex items-center mb-4 md:mb-0">
-                    <img src="https://duabhmoobtojsiab.com/logoxs.png" alt="Duab Toj Siab Logo" class="h-12 w-12 mr-3">
+                    <img src="icon.PNG" alt="Duab Toj Siab Logo" class="h-12 w-12 mr-3">
                     <div>
                         <h1 class="text-2xl font-bold">Duab Toj Siab</h1>
                         <p class="text-sm opacity-80">ຮູບພາບຊາວເມືອງລາວ</p>
@@ -190,7 +190,7 @@
             <div class="flex flex-col md:flex-row justify-between items-center">
                 <div class="mb-4 md:mb-0">
                     <div class="flex items-center">
-                        <img src="https://duabhmoobtojsiab.com/logoxs.png" alt="Duab Toj Siab Logo" class="h-8 w-8 mr-2">
+                        <img src="icon.PNG" alt="Duab Toj Siab Logo" class="h-8 w-8 mr-2">
                         <span class="text-xl font-bold">Duab Toj Siab</span>
                     </div>
                     <p class="text-gray-400 mt-2">ຮູບພາບຊາວເມືອງລາວ</p>
@@ -328,7 +328,7 @@
                 `;
             }
             
-            // For multiple images, create a carousel
+            // For multiple images, create a carousel (without navigation buttons)
             return `
                 <div class="carousel max-h-96 h-96 overflow-hidden w-full relative" id="carousel-${postId}">
                     <div class="carousel-inner h-full">
@@ -344,12 +344,6 @@
                             `;
                         }).join('')}
                     </div>
-                    <button class="carousel-control prev absolute left-2 top-1/2 transform -translate-y-1/2 bg-black bg-opacity-50 text-white rounded-full p-2" onclick="prevSlide('${postId}')">
-                        <i class="fas fa-chevron-left"></i>
-                    </button>
-                    <button class="carousel-control next absolute right-2 top-1/2 transform -translate-y-1/2 bg-black bg-opacity-50 text-white rounded-full p-2" onclick="nextSlide('${postId}')">
-                        <i class="fas fa-chevron-right"></i>
-                    </button>
                     <div class="absolute bottom-2 left-0 right-0 flex justify-center space-x-1">
                         ${images.map((_, index) => `
                             <button class="w-2 h-2 rounded-full ${index === 0 ? 'bg-white' : 'bg-gray-400'}" 
@@ -363,64 +357,15 @@
             `;
         }
 
-        // Carousel functions
-        function prevSlide(carouselId) {
-            const carousel = document.getElementById(`carousel-${carouselId}`);
-            if (!carousel) return;
-            
-            const items = carousel.querySelectorAll('.carousel-item');
-            if (items.length <= 1) return;
-            
-            const activeIndex = Array.from(items).findIndex(item => item.classList.contains('active'));
-            const newIndex = (activeIndex - 1 + items.length) % items.length;
-            updateCarousel(carouselId, newIndex);
-        }
-
-        function nextSlide(carouselId) {
-            const carousel = document.getElementById(`carousel-${carouselId}`);
-            if (!carousel) return;
-            
-            const items = carousel.querySelectorAll('.carousel-item');
-            if (items.length <= 1) return;
-            
-            const activeIndex = Array.from(items).findIndex(item => item.classList.contains('active'));
-            const newIndex = (activeIndex + 1) % items.length;
-            updateCarousel(carouselId, newIndex);
-        }
-
+        // Carousel navigation (handled in modal only)
         function goToSlide(carouselId, index) {
-            updateCarousel(carouselId, index);
-        }
-
-        function updateCarousel(postId, activeIndex) {
-            const carousel = document.getElementById(`carousel-${postId}`);
-            if (!carousel) return;
-            
-            const items = carousel.querySelectorAll('.carousel-item');
-            const dots = carousel.querySelectorAll('button.w-2.h-2');
-            
-            // Update active item
-            items.forEach((item, index) => {
-                if (index === activeIndex) {
-                    item.classList.add('active');
-                } else {
-                    item.classList.remove('active');
-                }
-            });
-            
-            // Update dots
-            dots.forEach((dot, index) => {
-                if (index === activeIndex) {
-                    dot.classList.remove('bg-gray-400');
-                    dot.classList.add('bg-white');
-                } else {
-                    dot.classList.remove('bg-white');
-                    dot.classList.add('bg-gray-400');
-                }
-            });
-            
-            // Store current index for this carousel
-            carouselStates[postId] = activeIndex;
+            // Find the post by carousel ID
+            const post = filteredPosts.find(p => `carousel-${p._id}` === `carousel-${carouselId}`);
+            if (post && post.images && post.images.length > index) {
+                // Open the modal with the specific image
+                const imageUrl = getImageUrl(post.images[index]);
+                openImageModal(imageUrl, post.description || 'ບໍ່ມີຄຳອະທິບາຍ', post._id, index);
+            }
         }
 
         // Open image modal with carousel support
@@ -801,6 +746,35 @@
             
             // Allow body scroll
             document.body.style.overflow = '';
+        }
+        
+        // Open location in Google Maps
+        function openLocationInGoogleMaps(locationName, geoCoordinates) {
+            try {
+                let mapsUrl;
+                
+                // If we have geo coordinates, use them for more precise location
+                if (geoCoordinates && Array.isArray(geoCoordinates) && geoCoordinates.length === 2) {
+                    const [longitude, latitude] = geoCoordinates;
+                    // Google Maps URL with coordinates
+                    mapsUrl = `https://www.google.com/maps?q=${latitude},${longitude}`;
+                } else if (locationName && locationName !== 'ບໍ່ຮູ້ສະຖານທີ່') {
+                    // Fallback to location name if coordinates aren't available
+                    // Encode the location name for URL
+                    const encodedLocation = encodeURIComponent(locationName);
+                    mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodedLocation}`;
+                } else {
+                    // Default to Laos if no location info
+                    mapsUrl = 'https://www.google.com/maps/place/Laos';
+                }
+                
+                // Open in a new tab
+                window.open(mapsUrl, '_blank');
+            } catch (error) {
+                console.error('Error opening Google Maps:', error);
+                // Fallback to generic Google Maps
+                window.open('https://www.google.com/maps', '_blank');
+            }
         }
 
         // Event Listeners
