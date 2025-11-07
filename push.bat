@@ -10,4 +10,4 @@ REM Commit with current date and time as message
 git commit -m "Auto commit %mydate% %mytime%"
 
 REM Push to remote
-git push
+git push origin version01
