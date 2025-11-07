@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>My Portfolio</title>
+  <meta name="description" content="Basic portfolio page" />
+  <style>
+    :root {
+      --bg: #0f172a;
+      --panel: #111827;
+      --text: #e5e7eb;
+      --muted: #9ca3af;
+      --accent: #22d3ee;
+      --accent-2: #60a5fa;
+      --card: #0b1220;
+      --border: #1f2937;
+    }
+    * { box-sizing: border-box; }
+    html, body { height: 100%; }
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, "Helvetica Neue", Noto Sans, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+      background: radial-gradient(1200px 800px at 10% -10%, #0b1b3a 0%, transparent 60%),
+                  radial-gradient(1200px 800px at 110% 10%, #1b263b 0%, transparent 60%),
+                  var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+    }
+    a { color: inherit; text-decoration: none; }
+    img { max-width: 100%; display: block; }
+
+    /* Layout */
+    .container { width: min(1100px, 92%); margin: 0 auto; }
+    header {
+      position: sticky; top: 0; z-index: 20;
+      backdrop-filter: saturate(1.2) blur(8px);
+      background: color-mix(in srgb, var(--bg) 70%, transparent);
+      border-bottom: 1px solid var(--border);
+    }
+    .nav {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 14px 0;
+    }
+    .brand { display: flex; align-items: center; gap: 10px; font-weight: 700; letter-spacing: 0.2px; }
+    .avatar { width: 36px; height: 36px; border-radius: 50%; background: linear-gradient(135deg, var(--accent), var(--accent-2)); display: grid; place-items: center; font-size: 14px; color: #0b1220; font-weight: 800; }
+    .menu { display: flex; gap: 18px; }
+    .menu a { color: var(--muted); font-weight: 600; }
+    .menu a:hover { color: var(--text); }
+
+    .hero { padding: 64px 0 24px; display: grid; gap: 28px; align-items: center; grid-template-columns: 1.2fr 0.8fr; }
+    .hero h1 { font-size: clamp(28px, 4.5vw, 44px); line-height: 1.15; margin: 0 0 12px; }
+    .hero p { color: var(--muted); margin: 0 0 18px; }
+    .cta { display: flex; gap: 12px; flex-wrap: wrap; }
+    .btn { padding: 10px 14px; border-radius: 10px; border: 1px solid var(--border); background: var(--panel); color: var(--text); font-weight: 700; }
+    .btn.primary { background: linear-gradient(135deg, var(--accent), var(--accent-2)); color: #0b1220; border-color: transparent; }
+
+    .card {
+      background: linear-gradient(180deg, color-mix(in srgb, var(--card) 86%, transparent) 0%, color-mix(in srgb, var(--panel) 70%, transparent) 100%);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 18px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.25);
+    }
+
+    section { padding: 24px 0; }
+    h2 { font-size: 20px; margin: 0 0 14px; letter-spacing: 0.3px; }
+
+    .grid { display: grid; gap: 14px; }
+    .grid.cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .grid.cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+
+    .skills li, .contact li { list-style: none; padding: 10px 12px; border: 1px solid var(--border); border-radius: 12px; background: color-mix(in srgb, var(--panel) 86%, transparent); display: flex; align-items: center; gap: 10px; }
+    .skills ul, .contact ul { display: grid; gap: 12px; grid-template-columns: repeat(3, minmax(0, 1fr)); padding: 0; margin: 0; }
+
+    .projects .project { display: grid; gap: 12px; grid-template-columns: 1fr; }
+    .project h3 { margin: 0; font-size: 16px; }
+    .project p { margin: 0; color: var(--muted); }
+
+    footer { padding: 28px 0 48px; color: var(--muted); border-top: 1px solid var(--border); margin-top: 28px; }
+
+    @media (max-width: 900px) {
+      .hero { grid-template-columns: 1fr; }
+      .skills ul, .contact ul { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .grid.cols-3 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+    @media (max-width: 520px) {
+      .menu { display: none; }
+      .skills ul, .contact ul { grid-template-columns: 1fr; }
+      .grid.cols-2, .grid.cols-3 { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="container nav">
+      <div class="brand">
+        <div class="avatar">ME</div>
+        <span>My Portfolio</span>
+      </div>
+      <nav class="menu">
+        <a href="#about">About</a>
+        <a href="#skills">Skills</a>
+        <a href="#projects">Projects</a>
+        <a href="#contact">Contact</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container">
+    <section class="hero">
+      <div>
+        <h1>Hi, I'm Your Name</h1>
+        <p>Front-end developer passionate about building clean, accessible interfaces and delightful user experiences.</p>
+        <div class="cta">
+          <a class="btn primary" href="#projects">View Projects</a>
+          <a class="btn" href="#contact">Contact Me</a>
+        </div>
+      </div>
+      <div class="card">
+        <img src="https://images.unsplash.com/photo-1526378722484-bd91ca387e72?q=80&w=1200&auto=format&fit=crop" alt="Cover" style="border-radius: 12px; aspect-ratio: 4/3; object-fit: cover;" />
+      </div>
+    </section>
+
+    <section id="about">
+      <div class="card">
+        <h2>About</h2>
+        <p>I love crafting performant, responsive web apps with modern tooling. I focus on component-driven UIs, accessibility, and thoughtful micro-interactions.</p>
+      </div>
+    </section>
+
+    <section id="skills" class="skills">
+      <div class="card">
+        <h2>Skills</h2>
+        <ul>
+          <li>HTML5</li>
+          <li>CSS3 / Tailwind</li>
+          <li>JavaScript / TypeScript</li>
+          <li>React</li>
+          <li>Next.js</li>
+          <li>Git & GitHub</li>
+        </ul>
+      </div>
+    </section>
+
+    <section id="projects" class="projects">
+      <div class="grid cols-3">
+        <article class="card project">
+          <div>
+            <h3>Project One</h3>
+            <p>Short description of a cool project highlighting impact and tech used.</p>
+          </div>
+          <div class="cta">
+            <a class="btn" href="#">Live</a>
+            <a class="btn" href="#">Source</a>
+          </div>
+        </article>
+        <article class="card project">
+          <div>
+            <h3>Project Two</h3>
+            <p>Brief description focusing on problem solved and your role.</p>
+          </div>
+          <div class="cta">
+            <a class="btn" href="#">Live</a>
+            <a class="btn" href="#">Source</a>
+          </div>
+        </article>
+        <article class="card project">
+          <div>
+            <h3>Project Three</h3>
+            <p>Another example demonstrating UI polish, performance, or accessibility.</p>
+          </div>
+          <div class="cta">
+            <a class="btn" href="#">Live</a>
+            <a class="btn" href="#">Source</a>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <section id="contact" class="contact">
+      <div class="card">
+        <h2>Contact</h2>
+        <ul>
+          <li>Email: <a href="mailto:you@example.com">you@example.com</a></li>
+          <li>LinkedIn: <a href="#" target="_blank" rel="noopener">linkedin.com/in/yourname</a></li>
+          <li>GitHub: <a href="#" target="_blank" rel="noopener">github.com/yourname</a></li>
+        </ul>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="container">
+      © <span id="year"></span> Your Name. All rights reserved.
+    </div>
+  </footer>
+
+  <script>
+    document.getElementById('year').textContent = new Date().getFullYear();
+  </script>
+</body>
+</html>

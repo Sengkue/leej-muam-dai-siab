@@ -7,6 +7,53 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="styles.css">
+    <style>
+        /* Progressive image loading */
+        .image-container {
+            background-size: cover;
+            background-position: center;
+            position: relative;
+            transition: opacity 0.3s ease-in-out;
+        }
+        
+        .image-container.loading {
+            background-color: #e5e7eb;
+        }
+        
+        .image-container.loading::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(90deg, #e5e7eb 0%, #f3f4f6 50%, #e5e7eb 100%);
+            background-size: 200% 100%;
+            animation: shimmer 1.5s infinite;
+        }
+        
+        @keyframes shimmer {
+            0% { background-position: -200% 0; }
+            100% { background-position: 200% 0; }
+        }
+        
+        .image-blur {
+            filter: blur(10px);
+            transform: scale(1.1);
+        }
+        
+        .image-loaded {
+            filter: blur(0);
+            transform: scale(1);
+            transition: filter 0.3s ease-out, transform 0.3s ease-out;
+        }
+        
+        /* Optimize modal image loading */
+        #modalImage {
+            image-rendering: -webkit-optimize-contrast;
+            image-rendering: crisp-edges;
+        }
+    </style>
 </head>
 <body class="bg-gray-50">
     <!-- Header -->
@@ -79,11 +126,15 @@
             </div>
             
             <div class="relative w-full h-full flex items-center justify-center">
+                <!-- Loading placeholder for modal image -->
+                <div id="modalImageLoader" class="absolute inset-0 flex items-center justify-center">
+                    <div class="loader ease-linear rounded-full border-4 border-t-4 border-gray-200 h-12 w-12"></div>
+                </div>
                 <img id="modalImage" 
                      src="" 
                      alt="" 
-                     class="z-40 max-h-screen max-w-screen object-contain overflow-hidden"
-                     loading="lazy"
+                     class="z-40 max-h-screen max-w-screen object-contain overflow-hidden hidden"
+                     loading="eager"
                      decoding="async">
             </div>
             

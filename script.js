@@ -12,6 +12,7 @@ const loadMoreBtn = document.getElementById('loadMoreBtn');
 const refreshBtn = document.getElementById('refreshBtn');
 const imageModal = document.getElementById('imageModal');
 const modalImage = document.getElementById('modalImage');
+const modalImageLoader = document.getElementById('modalImageLoader');
 const modalDescription = document.getElementById('modalDescription');
 const closeModal = document.getElementById('closeModal');
 
@@ -23,8 +24,113 @@ let isLoading = false;
 let currentPostIndex = -1;
 let currentImageIndex = 0;
 let hasRenderedInitialPosts = false;
-let carouselStates = {}; // Track carousel states
-let loadingTimeout = null; // Timeout for long loading
+let carouselStates = {};
+let loadingTimeout = null;
+
+// Image caching and preloading
+const imageCache = new Map();
+const preloadQueue = [];
+let isPreloading = false;
+
+// Intersection Observer for lazy loading
+let imageObserver;
+
+// Initialize Intersection Observer
+function initImageObserver() {
+    const options = {
+        root: null,
+        rootMargin: '50px',
+        threshold: 0.01
+    };
+
+    imageObserver = new IntersectionObserver((entries, observer) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                const container = entry.target;
+                const imageUrl = container.dataset.imageUrl;
+                
+                if (imageUrl && !imageCache.has(imageUrl)) {
+                    loadImageProgressive(imageUrl, container);
+                    observer.unobserve(container);
+                }
+            }
+        });
+    }, options);
+}
+
+// Progressive image loading with blur-up technique
+function loadImageProgressive(imageUrl, container) {
+    if (imageCache.has(imageUrl)) {
+        container.style.backgroundImage = `url('${imageUrl}')`;
+        container.classList.remove('loading');
+        container.classList.add('image-loaded');
+        return;
+    }
+
+    container.classList.add('loading');
+    
+    const img = new Image();
+    
+    img.onload = () => {
+        // Cache the image
+        imageCache.set(imageUrl, true);
+        
+        // Apply the image
+        container.style.backgroundImage = `url('${imageUrl}')`;
+        container.classList.remove('loading');
+        container.classList.add('image-loaded');
+        
+        // Preload next images in queue
+        preloadNextImages();
+    };
+    
+    img.onerror = () => {
+        container.classList.remove('loading');
+        container.style.backgroundImage = 'none';
+    };
+    
+    img.src = imageUrl;
+}
+
+// Preload images for faster modal viewing
+function preloadNextImages() {
+    if (isPreloading || preloadQueue.length === 0) return;
+    
+    isPreloading = true;
+    const nextImage = preloadQueue.shift();
+    
+    if (nextImage && !imageCache.has(nextImage)) {
+        const img = new Image();
+        img.onload = () => {
+            imageCache.set(nextImage, true);
+            isPreloading = false;
+            preloadNextImages();
+        };
+        img.onerror = () => {
+            isPreloading = false;
+            preloadNextImages();
+        };
+        img.src = nextImage;
+    } else {
+        isPreloading = false;
+        preloadNextImages();
+    }
+}
+
+// Add images to preload queue
+function queueImagesForPreload(images) {
+    images.forEach(imagePath => {
+        const fullUrl = getFullImageUrl(imagePath);
+        if (!imageCache.has(fullUrl) && !preloadQueue.includes(fullUrl)) {
+            preloadQueue.push(fullUrl);
+        }
+    });
+    
+    // Start preloading if not already running
+    if (!isPreloading) {
+        preloadNextImages();
+    }
+}
 
 // Format date function
 function formatDate(dateString) {
@@ -38,18 +144,21 @@ function formatDate(dateString) {
     return new Date(dateString).toLocaleDateString('lo-LA', options);
 }
 
-// Get image URL from API response - FIXED VERSION
+// Get image URL from API response
 function getImageUrl(imagePath) {
     if (!imagePath) return null;
-    
-    // The image path from API is like: "dc07811cf3218ba16c4886c9ffa6fb29/1iexsd7hvnr369qm2bytfjcu0.jpg"
-    // We need to construct: "https://duabhmoobtojsiab.com/dc07811cf3218ba16c4886c9ffa6fb29/1iexsd7hvnr369qm2bytfjcu0.jpg"
     return `${IMAGE_BASE_URL}${imagePath}`;
 }
 
-// Create carousel for multiple images
+// Get full size image URL
+function getFullImageUrl(imagePath) {
+    if (!imagePath) return null;
+    const baseUrl = "https://filesduab.tojsiab.com/full/1080/";
+    return `${baseUrl}${imagePath}`;
+}
+
+// Create carousel for multiple images with lazy loading
 function createImageCarousel(images, postId, description) {
-    // Escape single quotes and newlines for use in onclick attributes
     const escapedDescription = description ? 
         description.replace(/'/g, "\\'").replace(/\n/g, "\\n") : '';
     
@@ -68,17 +177,18 @@ function createImageCarousel(images, postId, description) {
     if (images.length === 1) {
         const imageUrl = getImageUrl(images[0]);
         return `
-            <div class="max-h-96 h-96 overflow-hidden w-full cursor-pointer image-container" 
-                 style="background-image: url('${imageUrl}')"
+            <div class="max-h-96 h-96 overflow-hidden w-full cursor-pointer image-container loading" 
+                 data-image-url="${imageUrl}"
+                 data-post-id="${postId}"
+                 data-image-index="0"
                  onclick="openImageModal('${imageUrl}', '${escapedDescription}', '${postId}', 0)">
-                 <div class="absolute top-2 right-2 bg-black bg-opacity-50 text-white px-2 py-1 rounded text-sm">
+                 <div class="absolute top-2 right-2 bg-black bg-opacity-50 text-white px-2 py-1 rounded text-sm z-10">
                     <i class="fas fa-images mr-1"></i> ${images.length}
                 </div>
             </div>
         `;
     }
     
-    // For multiple images, create a carousel (without navigation buttons)
     return `
         <div class="carousel max-h-96 h-96 overflow-hidden w-full relative" id="carousel-${postId}">
             <div class="carousel-inner h-full">
@@ -86,108 +196,144 @@ function createImageCarousel(images, postId, description) {
                     const imageUrl = getImageUrl(image);
                     return `
                         <div class="carousel-item h-full ${index === 0 ? 'active' : ''}">
-                            <div class="max-h-96 h-96 overflow-hidden w-full cursor-pointer image-container" 
-                                 style="background-image: url('${imageUrl}')"
+                            <div class="max-h-96 h-96 overflow-hidden w-full cursor-pointer image-container loading" 
+                                 data-image-url="${imageUrl}"
+                                 data-post-id="${postId}"
+                                 data-image-index="${index}"
                                  onclick="openImageModal('${imageUrl}', '${escapedDescription}', '${postId}', ${index})">
                             </div>
                         </div>
                     `;
                 }).join('')}
             </div>
-            <div class="absolute bottom-2 left-0 right-0 flex justify-center space-x-1">
+            <div class="absolute bottom-2 left-0 right-0 flex justify-center space-x-1 z-10">
                 ${images.map((_, index) => `
                     <button class="w-2 h-2 rounded-full ${index === 0 ? 'bg-white' : 'bg-gray-400'}" 
                             onclick="goToSlide('${postId}', ${index})"></button>
                 `).join('')}
             </div>
-            <div class="absolute top-2 right-2 bg-black bg-opacity-50 text-white px-2 py-1 rounded text-sm">
+            <div class="absolute top-2 right-2 bg-black bg-opacity-50 text-white px-2 py-1 rounded text-sm z-10">
                 <i class="fas fa-images mr-1"></i> ${images.length}
             </div>
         </div>
     `;
 }
 
-// Carousel navigation (handled in modal only)
+// Carousel navigation
 function goToSlide(carouselId, index) {
-    // Find the post by carousel ID
     const post = allPosts.find(p => `carousel-${p._id}` === `carousel-${carouselId}`);
     if (post && post.images && post.images.length > index) {
-        // Open the modal with the specific image
         const imageUrl = getImageUrl(post.images[index]);
         openImageModal(imageUrl, post.description || 'ບໍ່ມີຄຳອະທິບາຍ', post._id, index);
     }
 }
 
-// Open image modal with carousel support
+// Open image modal with optimized loading
 function openImageModal(imageUrl, description, postId, imageIndex = 0) {
-    // If we have a postId and imageIndex, it's from a carousel
     if (postId && imageIndex !== undefined) {
         currentPostIndex = allPosts.findIndex(post => post._id === postId);
         currentImageIndex = imageIndex;
     }
     
-    // Get full size image URL
     let fullImageUrl = imageUrl;
     if (imageUrl && imageUrl.includes('/square/')) {
-        // Convert square image URL to full size
         fullImageUrl = imageUrl.replace('/square/450/', '/full/1080/');
     }
     
-    // Set image source with srcset for responsive images
-    const modalImage = document.getElementById('modalImage');
+    // Show modal immediately
+    imageModal.classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
+    
+    // Show loader and hide image initially
+    modalImageLoader.classList.remove('hidden');
+    modalImage.classList.add('hidden');
+    
+    // Set description
+    modalDescription.textContent = description || 'ບໍ່ມີຄຳອະທິບາຍ';
+    
+    // Load image with progress
     if (fullImageUrl) {
-        modalImage.src = fullImageUrl;
-        modalImage.srcset = `${fullImageUrl} 1x, ${fullImageUrl} 2x`;
-        modalImage.alt = description || 'ຮູບພາບ';
+        // Check if image is cached
+        if (imageCache.has(fullImageUrl)) {
+            // Image is cached, show immediately
+            modalImage.src = fullImageUrl;
+            modalImage.alt = description || 'ຮູບພາບ';
+            modalImageLoader.classList.add('hidden');
+            modalImage.classList.remove('hidden');
+        } else {
+            // Load image with progress indicator
+            const img = new Image();
+            
+            img.onload = () => {
+                imageCache.set(fullImageUrl, true);
+                modalImage.src = fullImageUrl;
+                modalImage.alt = description || 'ຮູບພາບ';
+                modalImageLoader.classList.add('hidden');
+                modalImage.classList.remove('hidden');
+                
+                // Preload adjacent images
+                preloadAdjacentImages();
+            };
+            
+            img.onerror = () => {
+                modalImageLoader.classList.add('hidden');
+                modalImage.classList.remove('hidden');
+                modalImage.src = '';
+                modalImage.alt = 'ບໍ່ສາມາດໂຫຼດຮູບພາບ';
+            };
+            
+            img.src = fullImageUrl;
+        }
     } else {
+        modalImageLoader.classList.add('hidden');
+        modalImage.classList.remove('hidden');
         modalImage.src = '';
-        modalImage.srcset = '';
         modalImage.alt = 'ບໍ່ມີຮູບພາບ';
     }
     
-    // Set description
-    const modalDescription = document.getElementById('modalDescription');
-    modalDescription.textContent = description || 'ບໍ່ມີຄຳອະທິບາຍ';
-    
-    // Show/hide navigation buttons for carousel
+    // Show/hide navigation buttons
     const prevButton = document.getElementById('prevImage');
     const nextButton = document.getElementById('nextImage');
+    const modalCounter = document.getElementById('modalCounter');
     
-    // Check if this is from a post with multiple images
     if (currentPostIndex >= 0 && currentPostIndex < allPosts.length) {
         const post = allPosts[currentPostIndex];
         if (post.images && post.images.length > 1) {
             prevButton.classList.remove('hidden');
             nextButton.classList.remove('hidden');
-            
-            // Update counter
-            const modalCounter = document.getElementById('modalCounter');
             modalCounter.textContent = `${currentImageIndex + 1} / ${post.images.length}`;
         } else {
             prevButton.classList.add('hidden');
             nextButton.classList.add('hidden');
-            
-            // Clear counter
-            const modalCounter = document.getElementById('modalCounter');
             modalCounter.textContent = '';
         }
     } else {
         prevButton.classList.add('hidden');
         nextButton.classList.add('hidden');
-        
-        // Clear counter
-        const modalCounter = document.getElementById('modalCounter');
         modalCounter.textContent = '';
     }
-    
-    // Show modal
-    document.getElementById('imageModal').classList.remove('hidden');
-    
-    // Prevent body scroll
-    document.body.style.overflow = 'hidden';
 }
 
-// Navigate to next image in modal
+// Preload adjacent images in modal for faster navigation
+function preloadAdjacentImages() {
+    if (currentPostIndex < 0 || currentPostIndex >= allPosts.length) return;
+    
+    const post = allPosts[currentPostIndex];
+    if (!post.images || post.images.length <= 1) return;
+    
+    // Preload next and previous images
+    const nextIndex = (currentImageIndex + 1) % post.images.length;
+    const prevIndex = (currentImageIndex - 1 + post.images.length) % post.images.length;
+    
+    const imagesToPreload = [
+        post.images[nextIndex],
+        post.images[prevIndex]
+    ];
+    
+    queueImagesForPreload(imagesToPreload);
+}
+
+// Navigate to next image
 function nextImage() {
     if (currentPostIndex < 0 || currentPostIndex >= allPosts.length) return;
     
@@ -196,26 +342,40 @@ function nextImage() {
     
     currentImageIndex = (currentImageIndex + 1) % post.images.length;
     
-    // Get the image URL
     const imagePath = post.images[currentImageIndex];
     const imageUrl = getImageUrl(imagePath);
     const fullImageUrl = imageUrl.replace('/square/450/', '/full/1080/');
     
-    // Update modal
-    const modalImage = document.getElementById('modalImage');
-    modalImage.src = fullImageUrl;
-    modalImage.srcset = `${fullImageUrl} 1x, ${fullImageUrl} 2x`;
-    modalImage.alt = post.description || 'ຮູບພາບ';
+    // Show loader
+    modalImageLoader.classList.remove('hidden');
+    modalImage.classList.add('hidden');
     
-    const modalDescription = document.getElementById('modalDescription');
+    // Load image
+    if (imageCache.has(fullImageUrl)) {
+        modalImage.src = fullImageUrl;
+        modalImageLoader.classList.add('hidden');
+        modalImage.classList.remove('hidden');
+    } else {
+        const img = new Image();
+        img.onload = () => {
+            imageCache.set(fullImageUrl, true);
+            modalImage.src = fullImageUrl;
+            modalImageLoader.classList.add('hidden');
+            modalImage.classList.remove('hidden');
+            preloadAdjacentImages();
+        };
+        img.onerror = () => {
+            modalImageLoader.classList.add('hidden');
+            modalImage.classList.remove('hidden');
+        };
+        img.src = fullImageUrl;
+    }
+    
     modalDescription.textContent = post.description || 'ບໍ່ມີຄຳອະທິບາຍ';
-    
-    // Update counter
-    const modalCounter = document.getElementById('modalCounter');
-    modalCounter.textContent = `${currentImageIndex + 1} / ${post.images.length}`;
+    document.getElementById('modalCounter').textContent = `${currentImageIndex + 1} / ${post.images.length}`;
 }
 
-// Navigate to previous image in modal
+// Navigate to previous image
 function prevImage() {
     if (currentPostIndex < 0 || currentPostIndex >= allPosts.length) return;
     
@@ -224,36 +384,48 @@ function prevImage() {
     
     currentImageIndex = (currentImageIndex - 1 + post.images.length) % post.images.length;
     
-    // Get the image URL
     const imagePath = post.images[currentImageIndex];
     const imageUrl = getImageUrl(imagePath);
     const fullImageUrl = imageUrl.replace('/square/450/', '/full/1080/');
     
-    // Update modal
-    const modalImage = document.getElementById('modalImage');
-    modalImage.src = fullImageUrl;
-    modalImage.srcset = `${fullImageUrl} 1x, ${fullImageUrl} 2x`;
-    modalImage.alt = post.description || 'ຮູບພາບ';
+    // Show loader
+    modalImageLoader.classList.remove('hidden');
+    modalImage.classList.add('hidden');
     
-    const modalDescription = document.getElementById('modalDescription');
+    // Load image
+    if (imageCache.has(fullImageUrl)) {
+        modalImage.src = fullImageUrl;
+        modalImageLoader.classList.add('hidden');
+        modalImage.classList.remove('hidden');
+    } else {
+        const img = new Image();
+        img.onload = () => {
+            imageCache.set(fullImageUrl, true);
+            modalImage.src = fullImageUrl;
+            modalImageLoader.classList.add('hidden');
+            modalImage.classList.remove('hidden');
+            preloadAdjacentImages();
+        };
+        img.onerror = () => {
+            modalImageLoader.classList.add('hidden');
+            modalImage.classList.remove('hidden');
+        };
+        img.src = fullImageUrl;
+    }
+    
     modalDescription.textContent = post.description || 'ບໍ່ມີຄຳອະທິບາຍ';
-    
-    // Update counter
-    const modalCounter = document.getElementById('modalCounter');
-    modalCounter.textContent = `${currentImageIndex + 1} / ${post.images.length}`;
+    document.getElementById('modalCounter').textContent = `${currentImageIndex + 1} / ${post.images.length}`;
 }
 
 // Close image modal
 function closeImageModal() {
-    document.getElementById('imageModal').classList.add('hidden');
-    // Restore body scroll
-    document.body.style.overflow = 'auto';
-    // Reset indices
+    imageModal.classList.add('hidden');
+    document.body.style.overflow = '';
     currentPostIndex = -1;
     currentImageIndex = 0;
 }
 
-// Fetch data from API
+// Fetch data from API with timeout
 async function fetchData(page = 0, append = false) {
     if (isLoading) return;
     
@@ -266,7 +438,15 @@ async function fetchData(page = 0, append = false) {
             showLoading();
         }
         
-        const response = await fetch(`${API_BASE_URL}/${page}/0`);
+        // Add timeout to fetch request
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
+        
+        const response = await fetch(`${API_BASE_URL}/${page}/0`, {
+            signal: controller.signal
+        });
+        
+        clearTimeout(timeoutId);
         
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
@@ -276,21 +456,21 @@ async function fetchData(page = 0, append = false) {
         const newPosts = data.items || [];
         
         if (append) {
-            // Append new posts to existing ones
             allPosts = [...allPosts, ...newPosts];
         } else {
-            // Replace posts with new ones
             allPosts = newPosts;
             currentPage = 0;
         }
         
-        // Update posts display
         renderPosts();
         
-        // Show/hide load more button
         if (newPosts.length > 0) {
             loadMoreContainer.classList.remove('hidden');
             currentPage = page;
+            
+            // Queue first few images for preloading
+            const firstImages = newPosts.slice(0, 5).flatMap(post => post.images || []);
+            queueImagesForPreload(firstImages);
         } else {
             loadMoreContainer.classList.add('hidden');
         }
@@ -303,7 +483,12 @@ async function fetchData(page = 0, append = false) {
         console.error('Error fetching data:', error);
         hideLoading();
         hideLoadingMore();
-        showError('ບໍ່ສາມາດໂຫຼດຂໍ້ມູນໄດ້. ກະລຸນາລອງໃໝ່ພາຍຫຼັງ.');
+        
+        if (error.name === 'AbortError') {
+            showError('ການເຊື່ອມຕໍ່ໝົດເວລາ. ກະລຸນາກວດເຊັກການເຊື່ອມຕໍ່ອິນເຕີເນັດຂອງທ່ານ.');
+        } else {
+            showError('ບໍ່ສາມາດໂຫຼດຂໍ້ມູນໄດ້. ກະລຸນາລອງໃໝ່ພາຍຫຼັງ.');
+        }
         isLoading = false;
     }
 }
@@ -321,7 +506,6 @@ function showLoading() {
     }
     noResultsMessage.classList.add('hidden');
     
-    // Set a timeout to show a slow connection message
     clearTimeout(loadingTimeout);
     loadingTimeout = setTimeout(() => {
         if (loadingIndicator.classList.contains('hidden') === false) {
@@ -330,7 +514,7 @@ function showLoading() {
                 loadingText.textContent = 'ກຳລັງໂຫຼດຂໍ້ມູນ... (ການເຊື່ອມຕໍ່ຊ້າ)';
             }
         }
-    }, 5000); // Show slow connection message after 5 seconds
+    }, 5000);
 }
 
 // Hide loading indicator
@@ -338,7 +522,6 @@ function hideLoading() {
     loadingIndicator.classList.add('hidden');
     clearTimeout(loadingTimeout);
     
-    // Reset loading text
     const loadingText = loadingIndicator.querySelector('span');
     if (loadingText) {
         loadingText.textContent = 'ກຳລັງໂຫຼດຂໍ້ມູນ...';
@@ -350,7 +533,6 @@ function showLoadingMore() {
     loadingMoreIndicator.classList.remove('hidden');
     loadMoreContainer.classList.add('hidden');
     
-    // Set a timeout to show a slow connection message
     clearTimeout(loadingTimeout);
     loadingTimeout = setTimeout(() => {
         if (loadingMoreIndicator.classList.contains('hidden') === false) {
@@ -359,7 +541,7 @@ function showLoadingMore() {
                 loadingText.textContent = 'ກຳລັງໂຫຼດຂໍ້ມູນເພີ່ມເຕີມ... (ການເຊື່ອມຕໍ່ຊ້າ)';
             }
         }
-    }, 5000); // Show slow connection message after 5 seconds
+    }, 5000);
 }
 
 // Hide loading more indicator
@@ -367,7 +549,6 @@ function hideLoadingMore() {
     loadingMoreIndicator.classList.add('hidden');
     clearTimeout(loadingTimeout);
     
-    // Reset loading text
     const loadingText = loadingMoreIndicator.querySelector('span');
     if (loadingText) {
         loadingText.textContent = 'ກຳລັງໂຫຼດຂໍ້ມູນເພີ່ມເຕີມ...';
@@ -397,15 +578,12 @@ function renderPosts() {
     
     noResultsMessage.classList.add('hidden');
     
-    // If this is the first render or we're refreshing, clear the container
     if (!hasRenderedInitialPosts || currentPage === 0) {
         postsContainer.innerHTML = '';
         hasRenderedInitialPosts = true;
     }
     
-    // Create HTML for new posts only
     const newPostsHTML = allPosts.slice(postsContainer.children.length).map((post, index) => {
-        // Adjust index to match the global allPosts array
         const globalIndex = postsContainer.children.length + index;
         
         return `
@@ -437,85 +615,16 @@ function renderPosts() {
         `;
     }).join('');
     
-    // Append new posts to the container
     postsContainer.insertAdjacentHTML('beforeend', newPostsHTML);
-}
-
-// Open image modal (backward compatibility)
-function openImageModal(imageUrl, description, postId, imageIndex = 0) {
-    // If we have a postId and imageIndex, it's from a carousel
-    if (postId && imageIndex !== undefined) {
-        currentPostIndex = allPosts.findIndex(post => post._id === postId);
-        currentImageIndex = imageIndex;
-    }
     
-    // Get full size image URL
-    let fullImageUrl = imageUrl;
-    if (imageUrl && imageUrl.includes('/square/')) {
-        // Convert square image URL to full size
-        fullImageUrl = imageUrl.replace('/square/450/', '/full/1080/');
-    }
-    
-    // Set image source with srcset for responsive images
-    const modalImage = document.getElementById('modalImage');
-    if (fullImageUrl) {
-        modalImage.src = fullImageUrl;
-        modalImage.srcset = `${fullImageUrl} 1x, ${fullImageUrl} 2x`;
-        modalImage.alt = description || 'ຮູບພາບ';
-    } else {
-        modalImage.src = '';
-        modalImage.srcset = '';
-        modalImage.alt = 'ບໍ່ມີຮູບພາບ';
-    }
-    
-    // Set description
-    const modalDescription = document.getElementById('modalDescription');
-    modalDescription.textContent = description || 'ບໍ່ມີຄຳອະທິບາຍ';
-    
-    // Show/hide navigation buttons for carousel
-    const prevButton = document.getElementById('prevImage');
-    const nextButton = document.getElementById('nextImage');
-    
-    // Check if this is from a post with multiple images
-    if (currentPostIndex >= 0 && currentPostIndex < allPosts.length) {
-        const post = allPosts[currentPostIndex];
-        if (post.images && post.images.length > 1) {
-            prevButton.classList.remove('hidden');
-            nextButton.classList.remove('hidden');
-            
-            // Update counter
-            const modalCounter = document.getElementById('modalCounter');
-            modalCounter.textContent = `${currentImageIndex + 1} / ${post.images.length}`;
-        } else {
-            prevButton.classList.add('hidden');
-            nextButton.classList.add('hidden');
-            
-            // Clear counter
-            const modalCounter = document.getElementById('modalCounter');
-            modalCounter.textContent = '';
-        }
-    } else {
-        prevButton.classList.add('hidden');
-        nextButton.classList.add('hidden');
-        
-        // Clear counter
-        const modalCounter = document.getElementById('modalCounter');
-        modalCounter.textContent = '';
-    }
-    
-    // Show modal
-    document.getElementById('imageModal').classList.remove('hidden');
-    
-    // Prevent body scroll
-    document.body.style.overflow = 'hidden';
-}
-
-// Close image modal
-function closeImageModal() {
-    imageModal.classList.add('hidden');
-    
-    // Allow body scroll
-    document.body.style.overflow = '';
+    // Observe newly added images for lazy loading
+    requestAnimationFrame(() => {
+        const newImages = postsContainer.querySelectorAll('.image-container[data-image-url]:not(.observed)');
+        newImages.forEach(img => {
+            img.classList.add('observed');
+            imageObserver.observe(img);
+        });
+    });
 }
 
 // Open location in Google Maps
@@ -523,50 +632,48 @@ function openLocationInGoogleMaps(locationName, geoCoordinates) {
     try {
         let mapsUrl;
         
-        // If we have geo coordinates, use them for more precise location
         if (geoCoordinates && Array.isArray(geoCoordinates) && geoCoordinates.length === 2) {
             const [longitude, latitude] = geoCoordinates;
-            // Google Maps URL with coordinates
             mapsUrl = `https://www.google.com/maps?q=${latitude},${longitude}`;
         } else if (locationName && locationName !== 'ບໍ່ຮູ້ສະຖານທີ່') {
-            // Fallback to location name if coordinates aren't available
-            // Encode the location name for URL
             const encodedLocation = encodeURIComponent(locationName);
             mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodedLocation}`;
         } else {
-            // Default to Laos if no location info
             mapsUrl = 'https://www.google.com/maps/place/Laos';
         }
         
-        // Open in a new tab
         window.open(mapsUrl, '_blank');
     } catch (error) {
         console.error('Error opening Google Maps:', error);
-        // Fallback to generic Google Maps
         window.open('https://www.google.com/maps', '_blank');
     }
 }
 
 // Event Listeners
 document.addEventListener('DOMContentLoaded', function() {
-    refreshBtn.addEventListener('click', () => fetchData(0, false));
+    // Initialize intersection observer
+    initImageObserver();
+    
+    // Event listeners
+    refreshBtn.addEventListener('click', () => {
+        imageCache.clear();
+        fetchData(0, false);
+    });
+    
     loadMoreBtn.addEventListener('click', loadMore);
     closeModal.addEventListener('click', closeImageModal);
     
-    // Modal navigation
     document.getElementById('prevImage').addEventListener('click', prevImage);
     document.getElementById('nextImage').addEventListener('click', nextImage);
     
-    // Close modal when clicking outside the image
     imageModal.addEventListener('click', (e) => {
         if (e.target === imageModal) {
             closeImageModal();
         }
     });
     
-    // Keyboard navigation
     document.addEventListener('keydown', (e) => {
-        if (!document.getElementById('imageModal').classList.contains('hidden')) {
+        if (!imageModal.classList.contains('hidden')) {
             if (e.key === 'ArrowLeft') {
                 prevImage();
             } else if (e.key === 'ArrowRight') {
