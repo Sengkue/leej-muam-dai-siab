@@ -587,28 +587,28 @@ function renderPosts() {
         const globalIndex = postsContainer.children.length + index;
         
         return `
-            <div class="bg-white rounded-lg shadow-md overflow-hidden card-hover fade-in">
+            <div class="bg-white rounded-2xl shadow-lg overflow-hidden card-hover fade-in border border-gray-100">
                 ${createImageCarousel(post.images, post._id, post.description || 'ບໍ່ມີຄຳອະທິບາຍ')}
                 
-                <div class="p-4">
-                    <p class="text-gray-700 mb-3 line-clamp-2">${post.description || 'ບໍ່ມີຄຳອະທິບາຍ'}</p>
+                <div class="p-6">
+                    <p class="text-gray-700 mb-4 line-clamp-2 text-base leading-relaxed">${post.description || 'ບໍ່ມີຄຳອະທິບາຍ'}</p>
                     
-                    <div class="flex justify-between items-center text-sm text-gray-500">
-                        <div class="flex items-center cursor-pointer hover:text-blue-600" onclick="openLocationInGoogleMaps('${post.location ? post.location.replace(/'/g, "\\'") : 'ບໍ່ຮູ້ສະຖານທີ່'}', ${post.geo ? JSON.stringify(post.geo) : 'null'})" title="Click to view on Google Maps">
-                            <i class="fas fa-map-marker-alt mr-1"></i>
-                            <span>${post.location || 'ບໍ່ຮູ້ສະຖານທີ່'}</span>
-                            <i class="fas fa-external-link-alt ml-1 text-xs"></i>
+                    <div class="flex justify-between items-center text-sm text-gray-600 mb-3">
+                        <div class="flex items-center cursor-pointer hover:text-purple-600 transition-colors group" onclick="openLocationInGoogleMaps('${post.location ? post.location.replace(/'/g, "\\'") : 'ບໍ່ຮູ້ສະຖານທີ່'}', ${post.geo ? JSON.stringify(post.geo) : 'null'})" title="Click to view on Google Maps">
+                            <i class="fas fa-map-marker-alt mr-2 group-hover:scale-110 transition-transform"></i>
+                            <span class="font-medium">${post.location || 'ບໍ່ຮູ້ສະຖານທີ່'}</span>
+                            <i class="fas fa-external-link-alt ml-2 text-xs opacity-0 group-hover:opacity-100 transition-opacity"></i>
                         </div>
                         
-                        <div class="flex items-center">
-                            <i class="fas fa-eye mr-1"></i>
-                            <span>${post.view || 0}</span>
+                        <div class="flex items-center bg-purple-50 px-3 py-1 rounded-full">
+                            <i class="fas fa-eye mr-2 text-purple-600"></i>
+                            <span class="font-semibold text-purple-700">${post.view || 0}</span>
                         </div>
                     </div>
                     
-                    <div class="mt-2 text-xs text-gray-400">
-                        <i class="far fa-clock mr-1"></i>
-                        ${formatDate(post.createDate)}
+                    <div class="mt-3 pt-3 border-t border-gray-100 text-xs text-gray-500 flex items-center">
+                        <i class="far fa-clock mr-2 text-purple-600"></i>
+                        <span>${formatDate(post.createDate)}</span>
                     </div>
                 </div>
             </div>
