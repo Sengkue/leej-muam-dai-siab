@@ -3,7 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Duab Toj Siab</title>
+    <title>Duab Toj Siab - ຮູບພາບຊາວເມືອງໂສດ</title>
+    <meta name="description" content="ຊົມຮູບພາບຊາວເມືອງໂສດທີ່ສວຍງາມ - Professional Photo Gallery">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="styles.css">
@@ -57,19 +61,19 @@
 </head>
 <body class="bg-gray-50">
     <!-- Header -->
-    <header class="gradient-bg text-white shadow-lg">
+    <header class="gradient-bg text-white shadow-lg sticky top-0 z-40">
         <div class="container mx-auto px-4 py-6">
             <div class="flex flex-col md:flex-row justify-between items-center">
-                <div class="flex items-center mb-4 md:mb-0">
-                    <img src="icon.PNG" alt="Duab Toj Siab Logo" class="h-12 w-12 mr-3">
+                <div class="flex items-center mb-4 md:mb-0 group">
+                    <img src="icon.PNG" alt="Duab Toj Siab Logo" class="h-14 w-14 mr-4 rounded-full shadow-lg ring-4 ring-white ring-opacity-30 transition-transform duration-300">
                     <div>
-                        <h1 class="text-2xl font-bold">Leej Muam Dai Saib</h1>
-                        <p class="text-sm opacity-80">ຮູບພາບຊາວເມືອງໂສດ</p>
+                        <h1 class="text-3xl font-bold tracking-tight">Leej Muam Dai Saib</h1>
+                        <p class="text-sm opacity-90 font-medium mt-1">ຮູບພາບຊາວເມືອງໂສດ ✨</p>
                     </div>
                 </div>
                 
                 <div class="flex space-x-4">
-                    <button id="refreshBtn" class="bg-white text-purple-600 px-4 py-2 rounded-lg font-semibold hover:bg-gray-100 transition flex items-center">
+                    <button id="refreshBtn" class="bg-white text-purple-600 px-6 py-3 rounded-xl font-semibold hover:bg-gray-50 transition-all flex items-center shadow-md hover:shadow-xl">
                         <i class="fas fa-sync-alt mr-2"></i> ໂຫຼດຂໍ້ມູນໃໝ່
                     </button>
                 </div>
@@ -80,9 +84,19 @@
     <!-- Main Content -->
     <main class="container mx-auto px-4 py-8">
         <!-- Loading Indicator -->
-        <div id="loading" class="flex justify-center items-center py-12">
-            <div class="loader ease-linear rounded-full border-4 border-t-4 border-gray-200 h-12 w-12"></div>
-            <span class="ml-3 text-gray-600 text-lg">ກຳລັງໂຫຼດຂໍ້ມູນ...</span>
+        <div id="loading" class="flex flex-col justify-center items-center py-20">
+            <div class="relative">
+                <div class="loader ease-linear rounded-full border-4 border-t-4 border-gray-200 h-16 w-16"></div>
+                <div class="absolute inset-0 flex items-center justify-center">
+                    <i class="fas fa-images text-purple-600 text-xl"></i>
+                </div>
+            </div>
+            <span class="mt-6 text-gray-600 text-lg font-medium">ກຳລັງໂຫຼດຂໍ້ມູນ...</span>
+            <div class="mt-2 flex space-x-1 loading-dots">
+                <span class="w-2 h-2 bg-purple-600 rounded-full"></span>
+                <span class="w-2 h-2 bg-purple-600 rounded-full"></span>
+                <span class="w-2 h-2 bg-purple-600 rounded-full"></span>
+            </div>
         </div>
 
         <!-- Posts Grid -->
@@ -91,62 +105,79 @@
         </div>
 
         <!-- Load More Button -->
-        <div id="loadMoreContainer" class="mt-12 text-center hidden">
-            <button id="loadMoreBtn" class="bg-purple-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-purple-700 transition flex items-center mx-auto">
-                <i class="fas fa-plus mr-2"></i> ໂຫຼດເພີ່ມເຕີມ
+        <div id="loadMoreContainer" class="mt-16 text-center hidden">
+            <button id="loadMoreBtn" class="bg-purple-600 text-white px-8 py-4 rounded-2xl font-bold hover:bg-purple-700 transition-all flex items-center mx-auto text-lg shadow-2xl">
+                <i class="fas fa-plus mr-3 text-xl"></i> ໂຫຼດເພີ່ມເຕີມ
             </button>
         </div>
 
         <!-- Loading More Indicator -->
-        <div id="loadingMore" class="mt-8 flex justify-center items-center hidden">
-            <div class="loader ease-linear rounded-full border-4 border-t-4 border-gray-200 h-8 w-8"></div>
-            <span class="ml-3 text-gray-600 text-lg">ກຳລັງໂຫຼດຂໍ້ມູນເພີ່ມເຕີມ...</span>
+        <div id="loadingMore" class="mt-12 flex flex-col justify-center items-center hidden">
+            <div class="relative">
+                <div class="loader ease-linear rounded-full border-4 border-t-4 border-gray-200 h-12 w-12"></div>
+                <div class="absolute inset-0 flex items-center justify-center">
+                    <i class="fas fa-spinner text-purple-600"></i>
+                </div>
+            </div>
+            <span class="mt-4 text-gray-600 text-lg font-medium">ກຳລັງໂຫຼດຂໍ້ມູນເພີ່ມເຕີມ...</span>
         </div>
 
         <!-- No Results Message -->
-        <div id="noResults" class="hidden text-center py-12">
-            <i class="fas fa-images text-5xl text-gray-300 mb-4"></i>
-            <h3 class="text-xl text-gray-600">ບໍ່ມີຂໍ້ມູນ</h3>
-            <p class="text-gray-500">ບໍ່ພົບຂໍ້ມູນທີ່ກຳນົດໄວ້</p>
+        <div id="noResults" class="hidden text-center py-20">
+            <div class="inline-block p-8 bg-gradient-to-br from-purple-100 to-pink-100 rounded-3xl">
+                <i class="fas fa-images text-7xl text-purple-400 mb-6 block"></i>
+                <h3 class="text-2xl text-gray-700 font-bold mb-2">ບໍ່ມີຂໍ້ມູນ</h3>
+                <p class="text-gray-500 text-lg">ບໍ່ພົບຂໍ້ມູນທີ່ກຳນົດໄວ້</p>
+            </div>
         </div>
     </main>
 
     <!-- Image Modal -->
-    <div id="imageModal" class="fixed inset-0 bg-black bg-opacity-90 flex items-center justify-center z-50 hidden">
+    <div id="imageModal" class="fixed inset-0 bg-black bg-opacity-95 flex items-center justify-center z-50 hidden">
         <div class="relative w-full h-full flex items-center justify-center">
-            <div class="absolute top-4 right-4 z-50">
-                <button id="closeModal" class="text-white hover:text-gray-300 bg-black bg-opacity-50 rounded-full p-2">
-                    <i class="fas fa-times text-2xl"></i>
+            <!-- Close Button -->
+            <div class="absolute top-6 right-6 z-50">
+                <button id="closeModal" class="text-white hover:text-gray-300 bg-black bg-opacity-60 hover:bg-opacity-80 rounded-full p-4 transition-all hover:scale-110">
+                    <i class="fas fa-times text-3xl"></i>
                 </button>
             </div>
             
-            <div class="absolute bottom-4 left-0 right-0 z-50 bg-black bg-opacity-50 text-white p-4 text-center">
-                <p id="modalDescription" class="text-lg"></p>
-                <p id="modalCounter" class="text-sm mt-1"></p>
+            <!-- Description and Counter -->
+            <div class="absolute bottom-0 left-0 right-0 z-50 bg-gradient-to-t from-black via-black/80 to-transparent text-white p-8 text-center">
+                <p id="modalDescription" class="text-xl font-medium mb-2"></p>
+                <p id="modalCounter" class="text-sm"></p>
             </div>
             
-            <div class="relative w-full h-full flex items-center justify-center">
+            <!-- Image Container -->
+            <div class="relative w-full h-full flex items-center justify-center p-4">
                 <!-- Loading placeholder for modal image -->
-                <div id="modalImageLoader" class="absolute inset-0 flex items-center justify-center">
-                    <div class="loader ease-linear rounded-full border-4 border-t-4 border-gray-200 h-12 w-12"></div>
+                <div id="modalImageLoader" class="absolute inset-0 flex flex-col items-center justify-center">
+                    <div class="relative">
+                        <div class="loader ease-linear rounded-full border-4 border-t-4 border-gray-600 h-16 w-16"></div>
+                        <div class="absolute inset-0 flex items-center justify-center">
+                            <i class="fas fa-image text-white text-2xl"></i>
+                        </div>
+                    </div>
+                    <p class="text-white mt-4 text-lg">ກຳລັງໂຫຼດຮູບພາບ...</p>
                 </div>
                 <img id="modalImage" 
                      src="" 
                      alt="" 
-                     class="z-40 max-h-screen max-w-screen object-contain overflow-hidden hidden"
+                     class="z-40 max-h-screen max-w-screen object-contain overflow-hidden hidden rounded-lg shadow-2xl"
                      loading="eager"
                      decoding="async">
             </div>
             
-            <div class="absolute top-1/2 left-4 z-50 transform -translate-y-1/2">
-                <button id="prevImage" class="text-white hover:text-gray-300 bg-black bg-opacity-50 rounded-full p-3 hidden">
-                    <i class="fas fa-chevron-left text-2xl"></i>
+            <!-- Navigation Buttons -->
+            <div class="absolute top-1/2 left-6 z-50 transform -translate-y-1/2">
+                <button id="prevImage" class="text-white hover:text-gray-300 bg-black bg-opacity-60 hover:bg-opacity-80 rounded-full p-4 hidden transition-all hover:scale-110">
+                    <i class="fas fa-chevron-left text-3xl"></i>
                 </button>
             </div>
             
-            <div class="absolute top-1/2 right-4 z-50 transform -translate-y-1/2">
-                <button id="nextImage" class="text-white hover:text-gray-300 bg-black bg-opacity-50 rounded-full p-3 hidden">
-                    <i class="fas fa-chevron-right text-2xl"></i>
+            <div class="absolute top-1/2 right-6 z-50 transform -translate-y-1/2">
+                <button id="nextImage" class="text-white hover:text-gray-300 bg-black bg-opacity-60 hover:bg-opacity-80 rounded-full p-4 hidden transition-all hover:scale-110">
+                    <i class="fas fa-chevron-right text-3xl"></i>
                 </button>
             </div>
         </div>
