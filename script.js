@@ -62,12 +62,12 @@ function initImageObserver() {
 function loadImageProgressive(imageUrl, container) {
     if (imageCache.has(imageUrl)) {
         container.style.backgroundImage = `url('${imageUrl}')`;
-        container.classList.remove('loading');
-        container.classList.add('image-loaded');
+        container.classList.remove('image-loading');
+        container.classList.add('transition-all', 'duration-300');
         return;
     }
 
-    container.classList.add('loading');
+    container.classList.add('image-loading');
     
     const img = new Image();
     
@@ -77,16 +77,17 @@ function loadImageProgressive(imageUrl, container) {
         
         // Apply the image
         container.style.backgroundImage = `url('${imageUrl}')`;
-        container.classList.remove('loading');
-        container.classList.add('image-loaded');
+        container.classList.remove('image-loading');
+        container.classList.add('transition-all', 'duration-300');
         
         // Preload next images in queue
         preloadNextImages();
     };
     
     img.onerror = () => {
-        container.classList.remove('loading');
+        container.classList.remove('image-loading');
         container.style.backgroundImage = 'none';
+        container.classList.add('bg-gray-300');
     };
     
     img.src = imageUrl;
@@ -164,11 +165,11 @@ function createImageCarousel(images, postId, description) {
     
     if (!images || images.length === 0) {
         return `
-            <div class="max-h-96 h-96 overflow-hidden w-full cursor-pointer image-placeholder" 
+            <div class="h-96 overflow-hidden w-full cursor-pointer bg-gradient-to-br from-purple-100 to-pink-100 flex items-center justify-center" 
                  onclick="openImageModal('', '${escapedDescription}')">
-                <div class="text-center">
-                    <i class="fas fa-image text-4xl mb-2"></i>
-                    <p>ບໍ່ມີຮູບພາບ</p>
+                <div class="text-center text-purple-400">
+                    <i class="fas fa-image text-5xl mb-3 block animate-pulse-slow"></i>
+                    <p class="font-medium">ບໍ່ມີຮູບພາບ</p>
                 </div>
             </div>
         `;
@@ -177,26 +178,26 @@ function createImageCarousel(images, postId, description) {
     if (images.length === 1) {
         const imageUrl = getImageUrl(images[0]);
         return `
-            <div class="max-h-96 h-96 overflow-hidden w-full cursor-pointer image-container loading" 
+            <div class="h-96 overflow-hidden w-full cursor-pointer bg-gray-200 bg-cover bg-center relative image-loading transition-all duration-500 hover:scale-105" 
                  data-image-url="${imageUrl}"
                  data-post-id="${postId}"
                  data-image-index="0"
                  onclick="openImageModal('${imageUrl}', '${escapedDescription}', '${postId}', 0)">
-                 <div class="absolute top-2 right-2 bg-black bg-opacity-50 text-white px-2 py-1 rounded text-sm z-10">
-                    <i class="fas fa-images mr-1"></i> ${images.length}
+                 <div class="absolute top-3 right-3 bg-black bg-opacity-70 text-white px-3 py-1.5 rounded-lg text-sm z-10 backdrop-blur-sm">
+                    <i class="fas fa-images mr-1.5"></i> ${images.length}
                 </div>
             </div>
         `;
     }
     
     return `
-        <div class="carousel max-h-96 h-96 overflow-hidden w-full relative" id="carousel-${postId}">
+        <div class="carousel h-96 overflow-hidden w-full relative" id="carousel-${postId}">
             <div class="carousel-inner h-full">
                 ${images.map((image, index) => {
                     const imageUrl = getImageUrl(image);
                     return `
                         <div class="carousel-item h-full ${index === 0 ? 'active' : ''}">
-                            <div class="max-h-96 h-96 overflow-hidden w-full cursor-pointer image-container loading" 
+                            <div class="h-96 overflow-hidden w-full cursor-pointer bg-gray-200 bg-cover bg-center relative image-loading transition-all duration-500 hover:scale-105" 
                                  data-image-url="${imageUrl}"
                                  data-post-id="${postId}"
                                  data-image-index="${index}"
@@ -206,14 +207,14 @@ function createImageCarousel(images, postId, description) {
                     `;
                 }).join('')}
             </div>
-            <div class="absolute bottom-2 left-0 right-0 flex justify-center space-x-1 z-10">
+            <div class="absolute bottom-3 left-0 right-0 flex justify-center space-x-2 z-10">
                 ${images.map((_, index) => `
-                    <button class="w-2 h-2 rounded-full ${index === 0 ? 'bg-white' : 'bg-gray-400'}" 
+                    <button class="w-2.5 h-2.5 rounded-full transition-all duration-300 ${index === 0 ? 'bg-white w-8' : 'bg-white bg-opacity-50 hover:bg-opacity-100'}" 
                             onclick="goToSlide('${postId}', ${index})"></button>
                 `).join('')}
             </div>
-            <div class="absolute top-2 right-2 bg-black bg-opacity-50 text-white px-2 py-1 rounded text-sm z-10">
-                <i class="fas fa-images mr-1"></i> ${images.length}
+            <div class="absolute top-3 right-3 bg-black bg-opacity-70 text-white px-3 py-1.5 rounded-lg text-sm z-10 backdrop-blur-sm">
+                <i class="fas fa-images mr-1.5"></i> ${images.length}
             </div>
         </div>
     `;
@@ -585,28 +586,34 @@ function renderPosts() {
     
     const newPostsHTML = allPosts.slice(postsContainer.children.length).map((post, index) => {
         const globalIndex = postsContainer.children.length + index;
+        const staggerClass = `stagger-${(globalIndex % 6) + 1}`;
         
         return `
-            <div class="bg-white rounded-2xl shadow-lg overflow-hidden card-hover fade-in border border-gray-100">
+            <div class="bg-white rounded-2xl shadow-lg overflow-hidden card-shimmer animate-fade-in ${staggerClass} border border-gray-100 transition-all duration-500 hover:-translate-y-3 hover:scale-105 hover:shadow-2xl hover:border-purple-300">
                 ${createImageCarousel(post.images, post._id, post.description || 'ບໍ່ມີຄຳອະທິບາຍ')}
                 
                 <div class="p-6">
                     <p class="text-gray-700 mb-4 line-clamp-2 text-base leading-relaxed">${post.description || 'ບໍ່ມີຄຳອະທິບາຍ'}</p>
                     
                     <div class="flex justify-between items-center text-sm text-gray-600 mb-3">
-                        <div class="flex items-center cursor-pointer hover:text-purple-600 transition-colors group" onclick="openLocationInGoogleMaps('${post.location ? post.location.replace(/'/g, "\\'") : 'ບໍ່ຮູ້ສະຖານທີ່'}', ${post.geo ? JSON.stringify(post.geo) : 'null'})" title="Click to view on Google Maps">
-                            <i class="fas fa-map-marker-alt mr-2 group-hover:scale-110 transition-transform"></i>
-                            <span class="font-medium">${post.location || 'ບໍ່ຮູ້ສະຖານທີ່'}</span>
-                            <i class="fas fa-external-link-alt ml-2 text-xs opacity-0 group-hover:opacity-100 transition-opacity"></i>
+                        <div class="flex items-center cursor-pointer hover:text-purple-600 transition-all duration-300 group" 
+                             onclick="openLocationInGoogleMaps('${post.location ? post.location.replace(/'/g, "\\'") : 'ບໍ່ຮູ້ສະຖານທີ່'}', ${post.geo ? JSON.stringify(post.geo) : 'null'})" 
+                             title="Click to view on Google Maps">
+                            <i class="fas fa-map-marker-alt mr-2 transition-transform duration-300 group-hover:scale-125"></i>
+                            <span class="font-medium relative">
+                                ${post.location || 'ບໍ່ຮູ້ສະຖານທີ່'}
+                                <span class="absolute bottom-0 left-0 w-0 h-0.5 bg-purple-600 transition-all duration-300 group-hover:w-full"></span>
+                            </span>
+                            <i class="fas fa-external-link-alt ml-2 text-xs opacity-0 transition-all duration-300 group-hover:opacity-100 group-hover:translate-x-1"></i>
                         </div>
                         
-                        <div class="flex items-center bg-purple-50 px-3 py-1 rounded-full">
-                            <i class="fas fa-eye mr-2 text-purple-600"></i>
+                        <div class="flex items-center bg-purple-50 px-3 py-1.5 rounded-full transition-all duration-300 hover:bg-purple-100 hover:scale-105">
+                            <i class="fas fa-eye mr-2 text-purple-600 transition-transform duration-300 hover:scale-110"></i>
                             <span class="font-semibold text-purple-700">${post.view || 0}</span>
                         </div>
                     </div>
                     
-                    <div class="mt-3 pt-3 border-t border-gray-100 text-xs text-gray-500 flex items-center">
+                    <div class="mt-3 pt-3 border-t border-gray-100 text-xs text-gray-500 flex items-center transition-colors duration-300 hover:text-purple-600">
                         <i class="far fa-clock mr-2 text-purple-600"></i>
                         <span>${formatDate(post.createDate)}</span>
                     </div>
@@ -619,7 +626,7 @@ function renderPosts() {
     
     // Observe newly added images for lazy loading
     requestAnimationFrame(() => {
-        const newImages = postsContainer.querySelectorAll('.image-container[data-image-url]:not(.observed)');
+        const newImages = postsContainer.querySelectorAll('[data-image-url]:not(.observed)');
         newImages.forEach(img => {
             img.classList.add('observed');
             imageObserver.observe(img);

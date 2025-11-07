@@ -10,173 +10,218 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="styles.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    animation: {
+                        'spin-slow': 'spin 1s linear infinite',
+                        'float': 'float 15s ease-in-out infinite',
+                        'fade-in': 'fadeInUp 0.6s ease-out forwards',
+                        'pulse-slow': 'pulse-slow 2s ease-in-out infinite',
+                        'bounce-slow': 'bounce 2s ease-in-out infinite',
+                        'dot-1': 'loadingDots 1.4s infinite 0s',
+                        'dot-2': 'loadingDots 1.4s infinite 0.2s',
+                        'dot-3': 'loadingDots 1.4s infinite 0.4s',
+                    },
+                    keyframes: {
+                        float: {
+                            '0%, 100%': { transform: 'translate(0, 0) rotate(0deg)' },
+                            '33%': { transform: 'translate(30px, -30px) rotate(120deg)' },
+                            '66%': { transform: 'translate(-30px, 30px) rotate(240deg)' },
+                        },
+                        fadeInUp: {
+                            'from': { opacity: '0', transform: 'translateY(30px)' },
+                            'to': { opacity: '1', transform: 'translateY(0)' }
+                        },
+                        'pulse-slow': {
+                            '0%, 100%': { opacity: '1', transform: 'scale(1)' },
+                            '50%': { opacity: '0.5', transform: 'scale(1.1)' }
+                        },
+                        loadingDots: {
+                            '0%, 100%': { opacity: '0.3' },
+                            '50%': { opacity: '1' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
     <style>
-        /* Progressive image loading */
-        .image-container {
-            background-size: cover;
-            background-position: center;
-            position: relative;
-            transition: opacity 0.3s ease-in-out;
+        .line-clamp-2 {
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
         }
         
-        .image-container.loading {
-            background-color: #e5e7eb;
-        }
-        
-        .image-container.loading::after {
+        .card-shimmer { position: relative; overflow: hidden; }
+        .card-shimmer::before {
             content: '';
             position: absolute;
             top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: linear-gradient(90deg, #e5e7eb 0%, #f3f4f6 50%, #e5e7eb 100%);
-            background-size: 200% 100%;
-            animation: shimmer 1.5s infinite;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+            transition: left 0.5s;
+            z-index: 1;
+        }
+        .card-shimmer:hover::before { left: 100%; }
+        
+        .image-loading::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 40px;
+            height: 40px;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-top-color: white;
+            border-radius: 50%;
+            animation: spin-inner 0.8s linear infinite;
+            z-index: 10;
         }
         
-        @keyframes shimmer {
-            0% { background-position: -200% 0; }
-            100% { background-position: 200% 0; }
+        @keyframes spin-inner {
+            0% { transform: translate(-50%, -50%) rotate(0deg); }
+            100% { transform: translate(-50%, -50%) rotate(360deg); }
         }
         
-        .image-blur {
-            filter: blur(10px);
-            transform: scale(1.1);
+        .btn-ripple { position: relative; overflow: hidden; }
+        .btn-ripple::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.3);
+            transform: translate(-50%, -50%);
+            transition: width 0.6s, height 0.6s;
         }
-        
-        .image-loaded {
-            filter: blur(0);
-            transform: scale(1);
-            transition: filter 0.3s ease-out, transform 0.3s ease-out;
-        }
-        
-        /* Optimize modal image loading */
-        #modalImage {
-            image-rendering: -webkit-optimize-contrast;
-            image-rendering: crisp-edges;
-        }
+        .btn-ripple:active::after { width: 300px; height: 300px; }
     </style>
 </head>
-<body class="bg-gray-50">
+<body class="bg-gray-50 font-sans">
     <!-- Header -->
-    <header class="gradient-bg text-white shadow-lg sticky top-0 z-40">
-        <div class="container mx-auto px-4 py-6">
+    <header class="sticky top-0 z-40 bg-gradient-to-br from-purple-600 via-purple-500 to-pink-500 text-white shadow-2xl relative overflow-hidden">
+        <div class="absolute top-0 right-0 w-full h-full opacity-10 animate-float pointer-events-none">
+            <div class="absolute top-1/2 right-1/2 w-96 h-96 bg-white rounded-full blur-3xl"></div>
+        </div>
+        
+        <div class="container mx-auto px-4 py-6 relative z-10">
             <div class="flex flex-col md:flex-row justify-between items-center">
                 <div class="flex items-center mb-4 md:mb-0 group">
-                    <img src="icon.PNG" alt="Duab Toj Siab Logo" class="h-14 w-14 mr-4 rounded-full shadow-lg ring-4 ring-white ring-opacity-30 transition-transform duration-300">
+                    <img src="icon.PNG" alt="Logo" 
+                         class="h-14 w-14 mr-4 rounded-full shadow-lg ring-4 ring-white ring-opacity-30 transition-all duration-500 group-hover:rotate-[360deg] group-hover:scale-110">
                     <div>
                         <h1 class="text-3xl font-bold tracking-tight">Leej Muam Dai Saib</h1>
                         <p class="text-sm opacity-90 font-medium mt-1">ຮູບພາບຊາວເມືອງໂສດ ✨</p>
                     </div>
                 </div>
                 
-                <div class="flex space-x-4">
-                    <button id="refreshBtn" class="bg-white text-purple-600 px-6 py-3 rounded-xl font-semibold hover:bg-gray-50 transition-all flex items-center shadow-md hover:shadow-xl">
-                        <i class="fas fa-sync-alt mr-2"></i> ໂຫຼດຂໍ້ມູນໃໝ່
-                    </button>
-                </div>
+                <button id="refreshBtn" 
+                        class="group btn-ripple bg-white text-purple-600 px-6 py-3 rounded-xl font-semibold hover:bg-gray-50 transition-all duration-300 flex items-center shadow-lg hover:shadow-2xl hover:-translate-y-1 active:translate-y-0">
+                    <i class="fas fa-sync-alt mr-2 transition-transform duration-500 group-active:rotate-[360deg]"></i>
+                    <span>ໂຫຼດຂໍ້ມູນໃໝ່</span>
+                </button>
             </div>
         </div>
     </header>
 
-    <!-- Main Content -->
     <main class="container mx-auto px-4 py-8">
-        <!-- Loading Indicator -->
+        <!-- Loading -->
         <div id="loading" class="flex flex-col justify-center items-center py-20">
             <div class="relative">
-                <div class="loader ease-linear rounded-full border-4 border-t-4 border-gray-200 h-16 w-16"></div>
+                <div class="w-16 h-16 border-4 border-gray-200 border-t-purple-600 rounded-full animate-spin-slow"></div>
                 <div class="absolute inset-0 flex items-center justify-center">
                     <i class="fas fa-images text-purple-600 text-xl"></i>
                 </div>
             </div>
             <span class="mt-6 text-gray-600 text-lg font-medium">ກຳລັງໂຫຼດຂໍ້ມູນ...</span>
-            <div class="mt-2 flex space-x-1 loading-dots">
-                <span class="w-2 h-2 bg-purple-600 rounded-full"></span>
-                <span class="w-2 h-2 bg-purple-600 rounded-full"></span>
-                <span class="w-2 h-2 bg-purple-600 rounded-full"></span>
+            <div class="mt-2 flex space-x-1">
+                <span class="w-2 h-2 bg-purple-600 rounded-full animate-dot-1"></span>
+                <span class="w-2 h-2 bg-purple-600 rounded-full animate-dot-2"></span>
+                <span class="w-2 h-2 bg-purple-600 rounded-full animate-dot-3"></span>
             </div>
         </div>
 
         <!-- Posts Grid -->
-        <div id="postsContainer" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            <!-- Posts will be loaded here -->
-        </div>
+        <div id="postsContainer" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8"></div>
 
-        <!-- Load More Button -->
+        <!-- Load More -->
         <div id="loadMoreContainer" class="mt-16 text-center hidden">
-            <button id="loadMoreBtn" class="bg-purple-600 text-white px-8 py-4 rounded-2xl font-bold hover:bg-purple-700 transition-all flex items-center mx-auto text-lg shadow-2xl">
-                <i class="fas fa-plus mr-3 text-xl"></i> ໂຫຼດເພີ່ມເຕີມ
+            <button id="loadMoreBtn" 
+                    class="group btn-ripple bg-gradient-to-r from-purple-600 to-purple-700 text-white px-8 py-4 rounded-2xl font-bold hover:from-purple-700 hover:to-purple-800 transition-all duration-300 flex items-center mx-auto text-lg shadow-2xl hover:shadow-purple-500/50 hover:-translate-y-1 active:translate-y-0">
+                <i class="fas fa-plus mr-3 text-xl transition-transform duration-300 group-hover:rotate-90"></i>
+                <span>ໂຫຼດເພີ່ມເຕີມ</span>
             </button>
         </div>
 
-        <!-- Loading More Indicator -->
+        <!-- Loading More -->
         <div id="loadingMore" class="mt-12 flex flex-col justify-center items-center hidden">
             <div class="relative">
-                <div class="loader ease-linear rounded-full border-4 border-t-4 border-gray-200 h-12 w-12"></div>
-                <div class="absolute inset-0 flex items-center justify-center">
-                    <i class="fas fa-spinner text-purple-600"></i>
-                </div>
+                <div class="w-12 h-12 border-4 border-gray-200 border-t-purple-600 rounded-full animate-spin-slow"></div>
             </div>
             <span class="mt-4 text-gray-600 text-lg font-medium">ກຳລັງໂຫຼດຂໍ້ມູນເພີ່ມເຕີມ...</span>
         </div>
 
-        <!-- No Results Message -->
+        <!-- No Results -->
         <div id="noResults" class="hidden text-center py-20">
             <div class="inline-block p-8 bg-gradient-to-br from-purple-100 to-pink-100 rounded-3xl">
-                <i class="fas fa-images text-7xl text-purple-400 mb-6 block"></i>
+                <i class="fas fa-images text-7xl text-purple-400 mb-6 block animate-bounce-slow"></i>
                 <h3 class="text-2xl text-gray-700 font-bold mb-2">ບໍ່ມີຂໍ້ມູນ</h3>
                 <p class="text-gray-500 text-lg">ບໍ່ພົບຂໍ້ມູນທີ່ກຳນົດໄວ້</p>
             </div>
         </div>
     </main>
 
-    <!-- Image Modal -->
-    <div id="imageModal" class="fixed inset-0 bg-black bg-opacity-95 flex items-center justify-center z-50 hidden">
+    <!-- Modal -->
+    <div id="imageModal" class="fixed inset-0 bg-black bg-opacity-95 backdrop-blur-sm flex items-center justify-center z-50 hidden">
         <div class="relative w-full h-full flex items-center justify-center">
-            <!-- Close Button -->
             <div class="absolute top-6 right-6 z-50">
-                <button id="closeModal" class="text-white hover:text-gray-300 bg-black bg-opacity-60 hover:bg-opacity-80 rounded-full p-4 transition-all hover:scale-110">
+                <button id="closeModal" 
+                        class="text-white hover:text-gray-300 bg-black bg-opacity-60 hover:bg-opacity-80 rounded-full p-4 transition-all duration-300 hover:scale-110 active:scale-95">
                     <i class="fas fa-times text-3xl"></i>
                 </button>
             </div>
             
-            <!-- Description and Counter -->
             <div class="absolute bottom-0 left-0 right-0 z-50 bg-gradient-to-t from-black via-black/80 to-transparent text-white p-8 text-center">
                 <p id="modalDescription" class="text-xl font-medium mb-2"></p>
-                <p id="modalCounter" class="text-sm"></p>
+                <p id="modalCounter" class="text-sm inline-block bg-purple-600 px-4 py-1 rounded-full font-semibold"></p>
             </div>
             
-            <!-- Image Container -->
             <div class="relative w-full h-full flex items-center justify-center p-4">
-                <!-- Loading placeholder for modal image -->
                 <div id="modalImageLoader" class="absolute inset-0 flex flex-col items-center justify-center">
                     <div class="relative">
-                        <div class="loader ease-linear rounded-full border-4 border-t-4 border-gray-600 h-16 w-16"></div>
+                        <div class="w-16 h-16 border-4 border-gray-600 border-t-white rounded-full animate-spin-slow"></div>
                         <div class="absolute inset-0 flex items-center justify-center">
                             <i class="fas fa-image text-white text-2xl"></i>
                         </div>
                     </div>
                     <p class="text-white mt-4 text-lg">ກຳລັງໂຫຼດຮູບພາບ...</p>
                 </div>
-                <img id="modalImage" 
-                     src="" 
-                     alt="" 
-                     class="z-40 max-h-screen max-w-screen object-contain overflow-hidden hidden rounded-lg shadow-2xl"
-                     loading="eager"
-                     decoding="async">
+                <img id="modalImage" src="" alt="" 
+                     class="z-40 max-h-screen max-w-screen object-contain hidden rounded-lg shadow-2xl"
+                     loading="eager" decoding="async">
             </div>
             
-            <!-- Navigation Buttons -->
             <div class="absolute top-1/2 left-6 z-50 transform -translate-y-1/2">
-                <button id="prevImage" class="text-white hover:text-gray-300 bg-black bg-opacity-60 hover:bg-opacity-80 rounded-full p-4 hidden transition-all hover:scale-110">
+                <button id="prevImage" 
+                        class="text-white hover:text-gray-300 bg-black bg-opacity-60 hover:bg-opacity-80 rounded-full p-4 hidden transition-all duration-300 hover:scale-110 active:scale-95">
                     <i class="fas fa-chevron-left text-3xl"></i>
                 </button>
             </div>
             
             <div class="absolute top-1/2 right-6 z-50 transform -translate-y-1/2">
-                <button id="nextImage" class="text-white hover:text-gray-300 bg-black bg-opacity-60 hover:bg-opacity-80 rounded-full p-4 hidden transition-all hover:scale-110">
+                <button id="nextImage" 
+                        class="text-white hover:text-gray-300 bg-black bg-opacity-60 hover:bg-opacity-80 rounded-full p-4 hidden transition-all duration-300 hover:scale-110 active:scale-95">
                     <i class="fas fa-chevron-right text-3xl"></i>
                 </button>
             </div>
